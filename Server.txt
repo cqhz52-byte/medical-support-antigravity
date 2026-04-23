@@ -20,3 +20,36 @@ CREATE POLICY "工程师可以插入记录" ON clinical_cases FOR INSERT WITH CH
 
 -- 3. 创建一个存储桶 (Bucket) 用于存放压缩后的图片
 INSERT INTO storage.buckets (id, name, public) VALUES ('case-images', 'case-images', true);
+
+-- ==== V1.6 云端跨端派单系统 ====
+
+-- 4. 扩展基础用户体系，确立权限身份 (Role-Based Access)
+-- (实际上 Supabase Auth 自己管用户，可以通过在 public 生成 user_profiles 进行桥接记录)
+CREATE TABLE user_profiles (
+  id UUID REFERENCES auth.users(id) PRIMARY KEY,
+  full_name VARCHAR(100),
+  role VARCHAR(50) DEFAULT 'engineer' -- 'engineer' or 'admin'
+);
+
+-- 5. 调度管理派发表 (Dispatch Tasks SQL Mapping)
+CREATE TABLE dispatch_tasks (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+  admin_id UUID REFERENCES auth.users(id),       -- 派发者管理员
+  engineer_id UUID REFERENCES auth.users(id),    -- 被指派的具体工程师
+  engineer_name VARCHAR(100),                    -- 方便快速查询的脱水记录
+  target_hospital VARCHAR(200) NOT NULL,         -- 目的地医院
+  target_doctor VARCHAR(100),                    -- 对接医生
+  scheduled_time VARCHAR(100),                   -- 预计手术发生时间
+  procedure_type VARCHAR(100),                   -- 手术类型分类
+  status VARCHAR(20) DEFAULT 'pending'           -- 'pending'待接单, 'started'进行中, 'completed'已完成
+);
+
+-- 设置安全策略
+ALTER TABLE dispatch_tasks ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "管理员可全量增删查改" ON dispatch_tasks FOR ALL USING (
+  EXISTS (SELECT 1 FROM user_profiles WHERE id = auth.uid() AND role = 'admin')
+);
+CREATE POLICY "跟台人员仅能查看并接载派发给自己的任务" ON dispatch_tasks FOR SELECT USING (
+  engineer_id = auth.uid()
+);

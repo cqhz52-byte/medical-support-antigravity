@@ -12,8 +12,9 @@
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <h1>临床跟台</h1>
+      <h1>临床跟台系统</h1>
       <button id="syncBtn" class="ghost-btn" type="button">同步离线数据</button>
+      <button id="logoutBtn" class="ghost-btn is-hidden" type="button" style="color:#c2410c; border-color:#fed7aa; margin-left:8px;">退出登录</button>
     </header>
 
     <main>
@@ -26,39 +27,108 @@
             <p>医疗设备工程师专属工作台</p>
           </div>
           
+          <!-- Role Toggle V1.6 -->
+          <div class="role-switch" style="display: flex; gap: 10px; margin-bottom: 20px; background: #f1f5f9; padding: 4px; border-radius: 12px;">
+            <label class="role-tab is-active" style="flex: 1; text-align: center; padding: 10px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: 0.2s;">
+              <input type="radio" name="authRole" value="engineer" checked style="display:none;">
+              👨‍🔧 跟台人员
+            </label>
+            <label class="role-tab" style="flex: 1; text-align: center; padding: 10px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: 0.2s; color: #64748b;">
+              <input type="radio" name="authRole" value="admin" style="display:none;">
+              👨‍💼 派单调度
+            </label>
+          </div>
+
           <!-- Login Form -->
           <form id="loginForm" class="login-form" novalidate>
-            <h3>登录</h3>
+            <h3>身份认证</h3>
             <div class="field-group">
-              <label class="field-label" for="loginUsername">工号 / 账号</label>
-              <input id="loginUsername" type="text" class="field" placeholder="请输入您的工号" required>
+              <label class="field-label" for="loginUsername">工号 / 姓名 <span style="color:#888;font-size:0.75rem;font-weight:normal;">(多端测试:请用不同姓名)</span></label>
+              <input id="loginUsername" type="text" class="field" placeholder="请输入您的系统身份" required>
             </div>
             <div class="field-group">
               <label class="field-label" for="loginPassword">密 码</label>
-              <input id="loginPassword" type="password" class="field" placeholder="请输入密码" required>
+              <input id="loginPassword" type="password" class="field" placeholder="请输入密码校验" required>
             </div>
-            <button type="submit" class="primary-btn btn-block" style="margin-top:20px; font-size:1.05rem;">立即登录</button>
-            <p class="auth-switch">没有账号？ <span id="toRegisterBtn" class="auth-link">点此注册</span></p>
+            <button type="submit" class="primary-btn btn-block" style="margin-top:20px; font-size:1.05rem;">确 认 登 录</button>
+            <p class="auth-switch">还没开户？ <span id="toRegisterBtn" class="auth-link">快速注册绑定手机</span></p>
           </form>
 
           <!-- Register Form -->
           <form id="registerForm" class="login-form is-hidden" novalidate>
-            <h3>新用户注册</h3>
+            <h3>新用户录入</h3>
             <div class="field-group">
-              <label class="field-label" for="regUsername">真实姓名</label>
-              <input id="regUsername" type="text" class="field" placeholder="输入姓名" required>
+              <label class="field-label" for="regUsername">设置真实首要姓名</label>
+              <input id="regUsername" type="text" class="field" placeholder="例如：李工" required>
             </div>
             <div class="field-group">
-              <label class="field-label" for="regPassword">设置密码</label>
-              <input id="regPassword" type="password" class="field" placeholder="创建密码" required>
+              <label class="field-label" for="regPassword">初始授权密码</label>
+              <input id="regPassword" type="password" class="field" placeholder="数字口令" required>
             </div>
-            <button type="submit" class="primary-btn btn-block" style="margin-top:20px; font-size:1.05rem;">注册并登录</button>
-            <p class="auth-switch">已有账号？ <span id="toLoginBtn" class="auth-link">返回登录</span></p>
+            <button type="submit" class="primary-btn btn-block" style="margin-top:20px; font-size:1.05rem;">立即进站</button>
+            <p class="auth-switch">已有授权档案？ <span id="toLoginBtn" class="auth-link">返回认证</span></p>
           </form>
         </div>
       </section>
 
-      <!-- DASHBOARD VIEW -->
+      <!-- ADMIN DISPATCH VIEW (V1.6) -->
+      <section id="adminDashboardView" class="view">
+        <div class="card" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white; border: none;">
+          <h2>中央调度司令部</h2>
+          <p style="color: #94a3b8; font-size: 0.9rem; margin-top: -5px;" id="adminWelcomeText">管理员：---</p>
+        </div>
+
+        <!-- Add Task Form -->
+        <div class="card" style="border-left: 4px solid #10b981;">
+          <h3 style="margin-bottom: 12px; display:flex; align-items:center; gap:6px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> 新建工单派发</h3>
+          <form id="dispatchForm" novalidate>
+            <label class="field-label" for="dpEngineer">指派给谁 (工程师)</label>
+            <input id="dpEngineer" list="engineerList" class="field" placeholder="例如：李工" required>
+            <datalist id="engineerList">
+              <option value="李工"></option>
+              <option value="张总"></option>
+            </datalist>
+
+            <label class="field-label" for="dpHospital">派往医院</label>
+            <input id="dpHospital" class="field" placeholder="请检索库内医院名称..." required>
+
+            <label class="field-label" for="dpDoctor">对接神医/主任</label>
+            <input id="dpDoctor" class="field" placeholder="如：王主任">
+
+            <div style="display:flex; gap: 10px;">
+              <div style="flex:1;">
+                <label class="field-label" for="dpSurgery">术式大类</label>
+                <select id="dpSurgery" class="field">
+                  <option>IRE(不可逆电穿孔)</option>
+                  <option>机器人辅助手术</option>
+                  <option>射频消融</option>
+                  <option>微波消融</option>
+                  <option>大隐静脉曲张闭合</option>
+                </select>
+              </div>
+              <div style="flex:1;">
+                <label class="field-label" for="dpTime">执行计划</label>
+                <input id="dpTime" class="field" placeholder="今日下午" value="尽早执行">
+              </div>
+            </div>
+
+            <button type="submit" class="primary-btn btn-block" style="background: #10b981; margin-top:4px;">🚀 确认下达指令云穿透</button>
+          </form>
+        </div>
+
+        <!-- List Operations -->
+        <div class="card">
+          <div class="card-title-row" style="margin-bottom: 10px;">
+            <h3>实时派单流追踪簿</h3>
+            <button id="refreshAdminTasksBtn" class="mini-btn">↻ 同步云端</button>
+          </div>
+          <ul id="adminDispatchList" class="case-list">
+            <!-- Admin filled dispatch list -->
+          </ul>
+        </div>
+      </section>
+
+      <!-- DASHBOARD VIEW (ENGINEER) -->
       <section id="dashboardView" class="view">
         <div class="card welcome-card">
           <h2>今日工作台</h2>
@@ -102,14 +172,14 @@
         <div class="card">
           <div class="card-title-row">
             <h2>新建跟台记录</h2>
-            <button id="backBtn" class="ghost-btn" type="button">返回</button>
+            <button id="backBtn" class="ghost-btn" type="button">退出录单</button>
           </div>
 
           <div class="stepper" aria-label="分步表单">
             <div class="step is-active" data-step="1"><span>1</span>基础信息</div>
             <div class="step" data-step="2"><span>2</span>术中参数</div>
             <div class="step" data-step="3"><span>3</span>耗材使用</div>
-            <div class="step" data-step="4"><span>4</span>总结与图片</div>
+            <div class="step" data-step="4"><span>4</span>总结与归档</div>
           </div>
 
           <form id="caseForm" novalidate>
@@ -118,74 +188,65 @@
               <input id="hospitalSearch" list="hospitalOptions" class="field" placeholder="搜索并选择医院" required>
               <datalist id="hospitalOptions"></datalist>
 
-              <label class="field-label" for="doctorName">手术医生</label>
+              <label class="field-label" for="doctorName">手术主刀医生 (主任)</label>
               <input id="doctorName" class="field" placeholder="请输入医生姓名" required>
 
-              <label class="field-label" for="surgeryType">手术类型 (可选填或输入)</label>
-              <input id="surgeryType" list="surgeryOptions" class="field" placeholder="例如：肝肿瘤消融术">
+              <label class="field-label" for="surgeryType">手术术式类型 (由派单带入或自选)</label>
+              <input id="surgeryType" list="surgeryOptions" class="field" placeholder="例如：射频消融">
               <datalist id="surgeryOptions"></datalist>
 
-              <label class="field-label" for="deviceModel">器械型号</label>
+              <label class="field-label" for="deviceModel">级联带出的推荐器械</label>
               <select id="deviceModel" class="field" required></select>
             </div>
 
             <div class="form-step" data-step="2">
               <div id="dynamicParameters">
-                <div class="field-group param-row">
-                  <div class="param-input">
-                    <label class="field-label">输出功率(W)</label>
-                    <input type="number" class="field" placeholder="例如：40">
-                  </div>
-                  <div class="param-input">
-                    <label class="field-label">吸引压力(kPa)</label>
-                    <input type="number" class="field" placeholder="例如：-80">
-                  </div>
-                </div>
+                <!-- V1.5 专业高阶字段自动填装渲染区 -->
               </div>
               
               <div style="display: flex; gap: 10px; margin-bottom: 14px;">
                 <button id="addParamBtn" type="button" class="secondary-btn btn-block" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> 补充自定义参量
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> 补充加列参数
                 </button>
-                <button id="saveTemplateBtn" type="button" class="primary-btn" style="display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 0.8rem; padding: 0 12px;" title="将当前参数排列状态固化为此手术的自建模板">
+                <button id="saveTemplateBtn" type="button" class="primary-btn" style="display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 0.8rem; padding: 0 12px; background: #f59e0b; color: white;" title="将当前参数排列状态固化为此手术的自建模板">
                   💾 固定为本手术模板
                 </button>
               </div>
 
               <div class="card-inline" style="margin-bottom: 14px; background: #fffdf9; border-color: #f3dfc6;">
                 <div class="card-title-row" style="margin-bottom: 8px;">
-                  <span style="font-size: 0.85rem; font-weight: 600; color: #b77626;">📄 纸质参数单补录 (如: 超声切片/打点条)</span>
+                  <span style="font-size: 0.85rem; font-weight: 600; color: #b77626;">📄 纸质打点卷单拍照录入存档区</span>
                   <label for="paperParamInput" class="mini-btn" style="cursor:pointer; display: flex; align-items: center; gap: 4px; border-color: #f3dfc6; color: #b77626;">
-                    📸 原生拍照
+                    📸 原生高压拍照
                   </label>
                   <input id="paperParamInput" type="file" accept="image/*" capture="environment" style="display:none;" multiple>
                 </div>
-                <div id="paperParamPreview" class="media-preview" style="border-color: #f3dfc6; background: rgba(255,255,255,0.6);">支持拍摄原纸单以替代手输入库</div>
+                <div id="paperParamPreview" class="media-preview" style="border-color: #f3dfc6; background: rgba(255,255,255,0.6);">支持拍摄原纸单以替代纯手工打字回传云端中台机制</div>
               </div>
 
               <div class="switch-row">
-                <span>是否异常</span>
+                <span>术中是否报告阻抗器械异常告警？</span>
                 <label class="switch">
                   <input id="isAbnormal" type="checkbox">
                   <span class="slider"></span>
                 </label>
               </div>
 
-              <label class="field-label" for="outcome">术中结果</label>
-              <textarea id="outcome" class="field" rows="3" placeholder="简要记录术中结果"></textarea>
+              <label class="field-label" for="outcome">核心技术复盘记要</label>
+              <textarea id="outcome" class="field" rows="3" placeholder="例如：电场覆盖均匀..."></textarea>
             </div>
 
             <div class="form-step" data-step="3">
               <div class="card-inline">
                 <div class="card-title-row">
-                  <h3>设备耗材管理</h3>
+                  <h3>器械物料溯源网络</h3>
                   <!-- QR Code Camera Trigger -->
                   <div style="display:flex; gap: 6px;">
                     <label for="qrScanInput" class="mini-btn scan-trigger" style="cursor:pointer; display: flex; align-items: center; gap: 4px;">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><path d="M7 3v3M17 3v3M7 21v-3M17 21v-3M3 7h3M21 7h-3M3 17h3M21 17h-3"/></svg> 扫码
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><path d="M7 3v3M17 3v3M7 21v-3M17 21v-3M3 7h3M21 7h-3M3 17h3M21 17h-3"/></svg> 扫码识物
                     </label>
                     <input id="qrScanInput" type="file" accept="image/*" capture="environment" style="display:none;" />
-                    <button id="addConsumableBtn" type="button" class="mini-btn">手动添加</button>
+                    <button id="addConsumableBtn" type="button" class="mini-btn">手动键入追溯号</button>
                   </div>
                 </div>
                 <div id="consumableList"></div>
@@ -193,25 +254,27 @@
             </div>
 
             <div class="form-step" data-step="4">
-              <label class="field-label" for="complications">并发症/风险说明</label>
-              <textarea id="complications" class="field" rows="3" placeholder="无可留空"></textarea>
+              <label class="field-label" for="complications">临床并发症或隐患点警告</label>
+              <textarea id="complications" class="field" rows="3" placeholder="正常无异留空即可保护通道干净度"></textarea>
 
-              <label class="field-label" for="mediaInput">现场照片 (自动压缩入库)</label>
+              <label class="field-label" for="mediaInput">环境/合影相册压缩入库上传器</label>
               <input id="mediaInput" type="file" class="field" accept="image/*" capture="environment" multiple>
-              <div id="mediaPreview" class="media-preview">暂无文件</div>
+              <div id="mediaPreview" class="media-preview">系统监听环境快门，自动进行边缘 AI 画质压片...</div>
             </div>
 
             <div class="form-actions">
-              <button id="prevStepBtn" type="button" class="secondary-btn">上一步</button>
-              <button id="nextStepBtn" type="button" class="primary-btn">下一步</button>
-              <button id="submitBtn" type="submit" class="primary-btn is-hidden">提交记录</button>
+              <button id="prevStepBtn" type="button" class="secondary-btn">上一步返回</button>
+              <button id="nextStepBtn" type="button" class="primary-btn">安全无错下一步</button>
+              <button id="submitBtn" type="submit" class="primary-btn is-hidden">归卷终态全量落库</button>
             </div>
           </form>
         </div>
       </section>
     </main>
 
-    <button id="newCaseFab" class="fab" type="button">新建跟台记录</button>
+    <button id="newCaseFab" class="fab" type="button" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> 脱离派单自主新建盲台
+    </button>
   </div>
 
   <script src="./app.js"></script>
