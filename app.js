@@ -1,8 +1,13 @@
 document.addEventListener('DOMContentLoaded', () => {
   // Elements
+  const viewLogin = document.getElementById('loginView');
   const viewDashboard = document.getElementById('dashboardView');
   const viewForm = document.getElementById('caseFormView');
+  
+  const loginForm = document.getElementById('loginForm');
+  const topbar = document.querySelector('.topbar');
   const fabNewCase = document.getElementById('newCaseFab');
+  
   const btnBack = document.getElementById('backBtn');
   const btnNext = document.getElementById('nextStepBtn');
   const btnPrev = document.getElementById('prevStepBtn');
@@ -18,18 +23,33 @@ document.addEventListener('DOMContentLoaded', () => {
   // State
   let currentStep = 1;
   const totalSteps = 4;
+  let isAuthenticated = false;
 
-  // Mock Data
-  const hospitals = ['北京协和医院', '上海静安区中心医院', '广州中山大学附属第一医院', '南京鼓楼医院'];
-  const devices = ['超声高频外科集成系统 (US-100)', '内窥镜摄像系统 (Endo-X)', '高频电刀 (ESU-200)'];
+  // Mock Data for Devices
+  const devices = ['由于高频外科集成系统 (US-100)', '内窥镜摄像系统 (Endo-X)', '高频电刀 (ESU-200)', '超声刀 (Ultracision)'];
+
+  // Async Fetch Hospitals
+  async function loadHospitals() {
+    try {
+      const resp = await fetch('./hospitals.json');
+      if (resp.ok) {
+        const data = await resp.json();
+        // Clear default
+        hospitalOptions.innerHTML = '';
+        data.forEach(h => {
+          const opt = document.createElement('option');
+          opt.value = h.name;
+          hospitalOptions.appendChild(opt);
+        });
+        console.log(`Loaded ${data.length} hospitals.`);
+      }
+    } catch (e) {
+      console.warn("Could not load hospitals JSON. Working offline/mock mode.");
+    }
+  }
 
   // Init Form Data
-  hospitals.forEach(h => {
-    const opt = document.createElement('option');
-    opt.value = h;
-    hospitalOptions.appendChild(opt);
-  });
-
+  loadHospitals();
   devices.forEach(d => {
     const opt = document.createElement('option');
     opt.value = d;
@@ -37,17 +57,34 @@ document.addEventListener('DOMContentLoaded', () => {
     deviceModelSelect.appendChild(opt);
   });
 
-  // Navigation
+  // Navigation Logic
   function showView(viewId) {
     document.querySelectorAll('.view').forEach(el => el.classList.remove('is-active'));
     document.getElementById(viewId).classList.add('is-active');
     
-    if(viewId === 'caseFormView') {
+    // Topbar visibility
+    if (viewId === 'loginView') {
+      topbar.style.display = 'none';
       fabNewCase.classList.add('is-hidden');
     } else {
-      fabNewCase.classList.remove('is-hidden');
+      topbar.style.display = 'flex';
+      if(viewId === 'caseFormView') {
+        fabNewCase.classList.add('is-hidden');
+      } else {
+        fabNewCase.classList.remove('is-hidden');
+      }
     }
   }
+
+  // Auth Login
+  loginForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if(document.getElementById('loginUsername').value && document.getElementById('loginPassword').value) {
+      isAuthenticated = true;
+      document.getElementById('welcomeText').textContent = `欢迎回来，${document.getElementById('loginUsername').value}。`;
+      showView('dashboardView');
+    }
+  });
 
   fabNewCase.addEventListener('click', () => {
     currentStep = 1;
@@ -56,7 +93,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   btnBack.addEventListener('click', () => {
-    // Optionally confirm before leaving
     showView('dashboardView');
   });
 
@@ -128,9 +164,12 @@ document.addEventListener('DOMContentLoaded', () => {
     showView('dashboardView');
     
     // Update stats mocked
-    document.getElementById('statToday').textContent = '1';
+    let currentToday = parseInt(document.getElementById('statToday').textContent, 10);
+    document.getElementById('statToday').textContent = currentToday + 1;
   });
 
-  // Init
+  // Initialize App State
+  // Default to log in view at start
+  showView('loginView');
   updateStepper();
 });

@@ -366,3 +366,58 @@ body {
     width: 420px;
   }
 }
+
+/* Auth Login Styling */
+.login-container {
+  padding: 40px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 60vh;
+}
+
+.login-brand {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.login-logo {
+  width: 56px;
+  height: 56px;
+  color: var(--primary);
+  margin-bottom: 16px;
+  background: #e0f2f1;
+  padding: 12px;
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+}
+
+.login-brand h2 {
+  font-size: 1.6rem;
+  color: #0f172a;
+  margin: 0 0 8px;
+}
+
+.login-brand p {
+  color: var(--muted);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.login-form {
+  background: var(--surface);
+  padding: 30px 20px;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.05);
+  border: 1px solid #edf2f7;
+}
+
+.field-group {
+  margin-bottom: 18px;
+}
+
+.btn-block {
+  width: 100%;
+  display: block;
+  padding: 14px;
+}

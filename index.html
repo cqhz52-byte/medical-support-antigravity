@@ -17,7 +17,28 @@
     </header>
 
     <main>
-      <section id="dashboardView" class="view is-active">
+      <section id="loginView" class="view is-active">
+        <div class="login-container">
+          <div class="login-brand">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="login-logo"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            <h2>临床跟台支撑系统</h2>
+            <p>医疗设备工程师专属工作台</p>
+          </div>
+          <form id="loginForm" class="login-form" novalidate>
+            <div class="field-group">
+              <label class="field-label" for="loginUsername">工号 / 账号</label>
+              <input id="loginUsername" type="text" class="field" placeholder="请输入您的工号" required>
+            </div>
+            <div class="field-group">
+              <label class="field-label" for="loginPassword">密 码</label>
+              <input id="loginPassword" type="password" class="field" placeholder="请输入密码" required>
+            </div>
+            <button type="submit" class="primary-btn btn-block" style="margin-top:20px; font-size:1.05rem;">立即登录</button>
+          </form>
+        </div>
+      </section>
+
+      <section id="dashboardView" class="view">
         <div class="card welcome-card">
           <h2>今日工作台</h2>
           <p id="welcomeText">欢迎回来，工程师。</p>
