@@ -1,0 +1,22 @@
+-- 1. 创建跟台记录表
+CREATE TABLE clinical_cases (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+  engineer_id UUID REFERENCES auth.users(id), -- 关联登录用户
+  hospital VARCHAR(100),
+  doctor_name VARCHAR(50),
+  device_model VARCHAR(50),
+  power_w NUMERIC,
+  pressure_kpa NUMERIC,
+  is_abnormal BOOLEAN DEFAULT FALSE,
+  abnormal_desc TEXT,
+  image_url TEXT
+);
+
+-- 2. 设置行级安全 (RLS) - 仅允许登录用户插入和查看自己的数据
+ALTER TABLE clinical_cases ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "工程师只能看自己的记录" ON clinical_cases FOR SELECT USING (auth.uid() = engineer_id);
+CREATE POLICY "工程师可以插入记录" ON clinical_cases FOR INSERT WITH CHECK (auth.uid() = engineer_id);
+
+-- 3. 创建一个存储桶 (Bucket) 用于存放压缩后的图片
+INSERT INTO storage.buckets (id, name, public) VALUES ('case-images', 'case-images', true);
