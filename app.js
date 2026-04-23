@@ -22,11 +22,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const formSteps = document.querySelectorAll('.form-step');
   
   // Data Inputs
+  const hospitalSearch = document.getElementById('hospitalSearch');
   const hospitalOptions = document.getElementById('hospitalOptions');
+  const surgeryType = document.getElementById('surgeryType');
   const surgeryOptions = document.getElementById('surgeryOptions');
   const deviceModelSelect = document.getElementById('deviceModel');
+  
   const dynamicParameters = document.getElementById('dynamicParameters');
   const addParamBtn = document.getElementById('addParamBtn');
+  const paperParamInput = document.getElementById('paperParamInput');
+  const paperParamPreview = document.getElementById('paperParamPreview');
+
   const qrScanInput = document.getElementById('qrScanInput');
   const consumableList = document.getElementById('consumableList');
   const mediaInput = document.getElementById('mediaInput');
@@ -36,19 +42,69 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentStep = 1;
   const totalSteps = 4;
 
-  // Static Configuration
+  // Configuration & Mapping Dictionary (V1.3)
   const deviceTypes = [
     'CT引导手术导航系统', 
     '陡脉冲治疗系统', 
     '射频消融系统', 
-    '活检', 
+    '微波消融系统',
+    '活检系统', 
     '静脉射频闭合系统', 
     '高频电刀'
   ];
   
   const defaultSurgeries = [
-    '腹腔镜胆囊切除术', '肝肿瘤消融术', '射频消融', '微波消融', '甲状腺穿刺'
+    '腹腔镜胆囊切除术', '肝肿瘤消融术', '射频消融', '微波消融', '甲状腺穿刺', '胰腺肿瘤消融', '穿刺活检', '大隐静脉曲张微创'
   ];
+
+  // Surgery -> Device Auto Matching Strategy
+  const Surgery_Device_Mapping = {
+    '穿刺活检': 'CT引导手术导航系统',
+    '肝肿瘤消融术': '射频消融系统',
+    '胰腺肿瘤消融': '陡脉冲治疗系统',
+    '微波消融': '微波消融系统',
+    '大隐静脉曲张微创': '静脉射频闭合系统',
+    '腹腔镜胆囊切除术': '高频电刀'
+  };
+
+  // Device -> Parameter Templates Generation Strategy
+  const Device_Param_Mapping = {
+    'CT引导手术导航系统': [
+      { label: '靶点定位精度(mm)', placeholder: '如: 2.5' },
+      { label: '穿刺深度(cm)', placeholder: '如: 10' },
+      { label: '扫描层厚(mm)', placeholder: '如: 5' }
+    ],
+    '陡脉冲治疗系统': [
+      { label: '治疗电压(V)', placeholder: '如: 1500' },
+      { label: '脉冲宽度(μs)', placeholder: '如: 70' },
+      { label: '脉冲个数(N)', placeholder: '如: 90' },
+      { label: '电极针间距(cm)', placeholder: '如: 1.5' }
+    ],
+    '射频消融系统': [
+      { label: '目标设计功率(W)', placeholder: '如: 80' },
+      { label: '消融设定时间(min)', placeholder: '如: 12' },
+      { label: '终点阻抗(Ω)', placeholder: '如: 400' }
+    ],
+    '微波消融系统': [
+      { label: '微波输出功率(W)', placeholder: '如: 60' },
+      { label: '作业时间(min)', placeholder: '如: 10' }
+    ],
+    '活检系统': [
+      { label: '活检针号(G)', placeholder: '如: 18' },
+      { label: '进针总长度(cm)', placeholder: '如: 15' },
+      { label: '取材条数', placeholder: '如: 3' }
+    ],
+    '静脉射频闭合系统': [
+      { label: '闭合目标温度(℃)', placeholder: '如: 120' },
+      { label: '导管回撤速度(cm/s)', placeholder: '如: 0.5' },
+      { label: '累计总能量(J)', placeholder: '如: 8000' }
+    ],
+    '高频电刀': [
+      { label: '电切功率设定(W)', placeholder: '如: 40' },
+      { label: '电凝功率设定(W)', placeholder: '如: 40' },
+      { label: '工作模式', placeholder: '如: 混切' }
+    ]
+  };
 
   // Async Fetch Hospitals
   async function loadHospitals() {
@@ -68,6 +124,42 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function renderDeviceParams(device) {
+    dynamicParameters.innerHTML = ''; // clear
+    const templates = Device_Param_Mapping[device] || [];
+    
+    if(templates.length === 0) {
+      dynamicParameters.innerHTML = `<p style="font-size:0.85rem; color:#888;">此设备暂无内置模板，请手动新增参数。</p>`;
+      return;
+    }
+
+    // pair them up by 2 inputs per row for compactness
+    for(let i=0; i<templates.length; i+=2) {
+      const row = document.createElement('div');
+      row.className = 'field-group param-row';
+      
+      const col1 = `
+        <div class="param-input">
+          <label class="field-label">${templates[i].label}</label>
+          <input type="text" class="field" placeholder="${templates[i].placeholder}">
+        </div>
+      `;
+      
+      let col2 = '';
+      if(i+1 < templates.length) {
+        col2 = `
+          <div class="param-input">
+            <label class="field-label">${templates[i+1].label}</label>
+            <input type="text" class="field" placeholder="${templates[i+1].placeholder}">
+          </div>
+        `;
+      }
+      
+      row.innerHTML = col1 + col2;
+      dynamicParameters.appendChild(row);
+    }
+  }
+
   function initData() {
     loadHospitals();
     
@@ -83,8 +175,28 @@ document.addEventListener('DOMContentLoaded', () => {
       opt.value = s;
       surgeryOptions.appendChild(opt);
     });
+    
+    // Auto render default
+    renderDeviceParams(deviceModelSelect.value);
   }
   initData();
+
+  // Cross-Linkage Logic
+  surgeryType.addEventListener('change', (e) => {
+    const val = e.target.value.trim();
+    // find partial match mapping
+    for (const [surgery, device] of Object.entries(Surgery_Device_Mapping)) {
+      if (val.includes(surgery)) {
+        deviceModelSelect.value = device;
+        renderDeviceParams(device);
+        break;
+      }
+    }
+  });
+
+  deviceModelSelect.addEventListener('change', (e) => {
+    renderDeviceParams(e.target.value);
+  });
 
   // Navigation Logic
   function showView(viewId) {
@@ -192,18 +304,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Dynamic Parameters
+  // Dynamic Parameters Add
   addParamBtn.addEventListener('click', () => {
     const row = document.createElement('div');
     row.className = 'field-group param-row';
     row.innerHTML = `
       <div class="param-input">
-        <label class="field-label">参数名</label>
-        <input type="text" class="field" placeholder="如: IRE脉冲数">
+        <label class="field-label">输入项名称</label>
+        <input type="text" class="field" placeholder="如: 补打单次时间">
       </div>
       <div class="param-input">
-        <label class="field-label">数值设置</label>
-        <input type="text" class="field" placeholder="如: 90">
+        <label class="field-label">记录数值</label>
+        <input type="text" class="field" placeholder="如: 60s">
       </div>
       <button type="button" class="param-delete" title="移除该参数">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
@@ -217,21 +329,18 @@ document.addEventListener('DOMContentLoaded', () => {
     dynamicParameters.appendChild(row);
   });
 
-  // QR Scan handler
+  // QR Scan handler mock
   qrScanInput.addEventListener('change', (e) => {
     if (e.target.files && e.target.files.length > 0) {
-      // Create a mock consumable entry since pure HTML doesn't reliably decode QR without libraries
       const div = document.createElement('div');
       div.className = 'consumable-row';
-      div.innerHTML = `<strong>(扫码识别假体)</strong> SN: ${Date.now().toString().slice(-8)}`;
+      div.innerHTML = `<strong>(设备包装条码解析)</strong> SN提取: ${Date.now().toString().slice(-8)}`;
       consumableList.appendChild(div);
-      
-      // Reset input
       e.target.value = '';
     }
   });
 
-  // Image Front-end Compression
+  // Image Front-end Compression Util
   function compressImage(file, maxSize = 1280) {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -255,7 +364,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
 
-          // Output compressed format
+          // Return compressed base64
           resolve(canvas.toDataURL('image/jpeg', 0.8));
         };
         img.src = readerEvent.target.result;
@@ -264,29 +373,45 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  mediaInput.addEventListener('change', async (e) => {
+  // Handle Paper Document Images
+  paperParamInput.addEventListener('change', async (e) => {
     const files = e.target.files;
-    mediaPreview.innerHTML = '';
+    if (files.length === 0) return;
     
-    if (files.length === 0) {
-      mediaPreview.textContent = '暂无文件';
-      return;
-    }
-
-    mediaPreview.textContent = '压缩中...';
+    paperParamPreview.textContent = '纸质单据归档处理中...';
     
-    // Process all images
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       if (file.type.startsWith('image/')) {
-        const compressedBase64 = await compressImage(file);
-        
-        // Render preview
+        const base64 = await compressImage(file);
         const imgEl = document.createElement('img');
-        imgEl.src = compressedBase64;
-        imgEl.style.cssText = 'width: 100%; max-width: 150px; border-radius: 8px; margin: 5px;';
+        imgEl.src = base64;
+        imgEl.style.cssText = 'width: 100%; max-width: 140px; border-radius: 6px; margin: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 1px solid #e2c095;';
         
-        // Remove text after first compress
+        if (i === 0) paperParamPreview.innerHTML = ''; 
+        paperParamPreview.appendChild(imgEl);
+      }
+    }
+  });
+
+  // Handle Surgery Environment Images
+  mediaInput.addEventListener('change', async (e) => {
+    const files = e.target.files;
+    if (files.length === 0) {
+      mediaPreview.textContent = '暂无现场图片';
+      return;
+    }
+
+    mediaPreview.textContent = '画质极速压缩中...';
+    
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.type.startsWith('image/')) {
+        const base64 = await compressImage(file);
+        const imgEl = document.createElement('img');
+        imgEl.src = base64;
+        imgEl.style.cssText = 'width: 100%; max-width: 140px; border-radius: 8px; margin: 4px;';
+        
         if (i === 0) mediaPreview.innerHTML = ''; 
         mediaPreview.appendChild(imgEl);
       }
@@ -296,23 +421,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // Form Submit
   document.getElementById('caseForm').addEventListener('submit', (e) => {
     e.preventDefault();
-    alert('跟台记录及参数、耗材流已成功保存至离线区！');
+    alert('全部状态捕获！跟台记录（带纸质相册流）均已压缩保存于本地前端。');
     
     e.target.reset();
     mediaPreview.textContent = '暂无文件';
-    dynamicParameters.innerHTML = `
-      <div class="field-group param-row">
-        <div class="param-input">
-          <label class="field-label">输出功率(W)</label>
-          <input type="number" class="field" placeholder="例如：40">
-        </div>
-        <div class="param-input">
-          <label class="field-label">吸引压力(kPa)</label>
-          <input type="number" class="field" placeholder="例如：-80">
-        </div>
-      </div>
-    `;
+    paperParamPreview.textContent = '支持拍摄原纸单以替代手输入库';
+    renderDeviceParams(deviceModelSelect.value); // reset the params config
     consumableList.innerHTML = '';
+    
     showView('dashboardView');
     
     let currentToday = parseInt(document.getElementById('statToday').textContent, 10);

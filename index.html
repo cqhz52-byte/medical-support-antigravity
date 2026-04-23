@@ -134,8 +134,19 @@
               </div>
               
               <button id="addParamBtn" type="button" class="secondary-btn btn-block" style="margin-bottom: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> 添加自定义参数 (如: IRE)
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> 补充手填自定义参量
               </button>
+
+              <div class="card-inline" style="margin-bottom: 14px; background: #fffdf9; border-color: #f3dfc6;">
+                <div class="card-title-row" style="margin-bottom: 8px;">
+                  <span style="font-size: 0.85rem; font-weight: 600; color: #b77626;">📄 纸质参数单补录 (如: 超声切片/打点条)</span>
+                  <label for="paperParamInput" class="mini-btn" style="cursor:pointer; display: flex; align-items: center; gap: 4px; border-color: #f3dfc6; color: #b77626;">
+                    📸 原生拍照
+                  </label>
+                  <input id="paperParamInput" type="file" accept="image/*" capture="environment" style="display:none;" multiple>
+                </div>
+                <div id="paperParamPreview" class="media-preview" style="border-color: #f3dfc6; background: rgba(255,255,255,0.6);">支持拍摄原纸单以替代手输入库</div>
+              </div>
 
               <div class="switch-row">
                 <span>是否异常</span>
