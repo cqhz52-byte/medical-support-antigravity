@@ -416,8 +416,43 @@ body {
   margin-bottom: 18px;
 }
 
-.btn-block {
-  width: 100%;
-  display: block;
-  padding: 14px;
+/* Auth Switch Styling */
+.auth-switch {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.auth-link {
+  color: var(--primary);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* Dynamic Params Styling */
+.param-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+.param-input {
+  flex: 1;
+}
+.param-delete {
+  color: var(--danger);
+  background: #ffedd5;
+  border: none;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Base utilities */
+.is-hidden {
+  display: none !important;
 }

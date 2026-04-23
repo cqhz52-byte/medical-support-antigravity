@@ -17,6 +17,7 @@
     </header>
 
     <main>
+      <!-- AUTH VIEW (LOGIN / REGISTER) -->
       <section id="loginView" class="view is-active">
         <div class="login-container">
           <div class="login-brand">
@@ -24,7 +25,10 @@
             <h2>临床跟台支撑系统</h2>
             <p>医疗设备工程师专属工作台</p>
           </div>
+          
+          <!-- Login Form -->
           <form id="loginForm" class="login-form" novalidate>
+            <h3>登录</h3>
             <div class="field-group">
               <label class="field-label" for="loginUsername">工号 / 账号</label>
               <input id="loginUsername" type="text" class="field" placeholder="请输入您的工号" required>
@@ -34,10 +38,27 @@
               <input id="loginPassword" type="password" class="field" placeholder="请输入密码" required>
             </div>
             <button type="submit" class="primary-btn btn-block" style="margin-top:20px; font-size:1.05rem;">立即登录</button>
+            <p class="auth-switch">没有账号？ <span id="toRegisterBtn" class="auth-link">点此注册</span></p>
+          </form>
+
+          <!-- Register Form -->
+          <form id="registerForm" class="login-form is-hidden" novalidate>
+            <h3>新用户注册</h3>
+            <div class="field-group">
+              <label class="field-label" for="regUsername">真实姓名</label>
+              <input id="regUsername" type="text" class="field" placeholder="输入姓名" required>
+            </div>
+            <div class="field-group">
+              <label class="field-label" for="regPassword">设置密码</label>
+              <input id="regPassword" type="password" class="field" placeholder="创建密码" required>
+            </div>
+            <button type="submit" class="primary-btn btn-block" style="margin-top:20px; font-size:1.05rem;">注册并登录</button>
+            <p class="auth-switch">已有账号？ <span id="toLoginBtn" class="auth-link">返回登录</span></p>
           </form>
         </div>
       </section>
 
+      <!-- DASHBOARD VIEW -->
       <section id="dashboardView" class="view">
         <div class="card welcome-card">
           <h2>今日工作台</h2>
@@ -66,6 +87,7 @@
         </div>
       </section>
 
+      <!-- CASE FORM VIEW -->
       <section id="caseFormView" class="view">
         <div class="card">
           <div class="card-title-row">
@@ -83,14 +105,15 @@
           <form id="caseForm" novalidate>
             <div class="form-step is-active" data-step="1">
               <label class="field-label" for="hospitalSearch">合作医院</label>
-              <input id="hospitalSearch" list="hospitalOptions" class="field" placeholder="搜索并选择医院">
+              <input id="hospitalSearch" list="hospitalOptions" class="field" placeholder="搜索并选择医院" required>
               <datalist id="hospitalOptions"></datalist>
 
               <label class="field-label" for="doctorName">手术医生</label>
               <input id="doctorName" class="field" placeholder="请输入医生姓名" required>
 
-              <label class="field-label" for="surgeryType">手术类型</label>
-              <input id="surgeryType" class="field" placeholder="例如：腹腔镜胆囊切除术">
+              <label class="field-label" for="surgeryType">手术类型 (可选填或输入)</label>
+              <input id="surgeryType" list="surgeryOptions" class="field" placeholder="例如：肝肿瘤消融术">
+              <datalist id="surgeryOptions"></datalist>
 
               <label class="field-label" for="deviceModel">器械型号</label>
               <select id="deviceModel" class="field" required></select>
@@ -98,12 +121,21 @@
 
             <div class="form-step" data-step="2">
               <div id="dynamicParameters">
-                <label class="field-label" for="powerOut">输出功率(W)</label>
-                <input id="powerOut" type="number" class="field" placeholder="例如：40">
-
-                <label class="field-label" for="suctionPressure">吸引压力(kPa)</label>
-                <input id="suctionPressure" type="number" class="field" placeholder="例如：-80">
+                <div class="field-group param-row">
+                  <div class="param-input">
+                    <label class="field-label">输出功率(W)</label>
+                    <input type="number" class="field" placeholder="例如：40">
+                  </div>
+                  <div class="param-input">
+                    <label class="field-label">吸引压力(kPa)</label>
+                    <input type="number" class="field" placeholder="例如：-80">
+                  </div>
+                </div>
               </div>
+              
+              <button id="addParamBtn" type="button" class="secondary-btn btn-block" style="margin-bottom: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> 添加自定义参数 (如: IRE)
+              </button>
 
               <div class="switch-row">
                 <span>是否异常</span>
@@ -120,8 +152,15 @@
             <div class="form-step" data-step="3">
               <div class="card-inline">
                 <div class="card-title-row">
-                  <h3>耗材追踪</h3>
-                  <button id="addConsumableBtn" type="button" class="mini-btn">添加耗材</button>
+                  <h3>设备耗材管理</h3>
+                  <!-- QR Code Camera Trigger -->
+                  <div style="display:flex; gap: 6px;">
+                    <label for="qrScanInput" class="mini-btn scan-trigger" style="cursor:pointer; display: flex; align-items: center; gap: 4px;">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><path d="M7 3v3M17 3v3M7 21v-3M17 21v-3M3 7h3M21 7h-3M3 17h3M21 17h-3"/></svg> 扫码
+                    </label>
+                    <input id="qrScanInput" type="file" accept="image/*" capture="environment" style="display:none;" />
+                    <button id="addConsumableBtn" type="button" class="mini-btn">手动添加</button>
+                  </div>
                 </div>
                 <div id="consumableList"></div>
               </div>
@@ -131,8 +170,8 @@
               <label class="field-label" for="complications">并发症/风险说明</label>
               <textarea id="complications" class="field" rows="3" placeholder="无可留空"></textarea>
 
-              <label class="field-label" for="mediaInput">图片/视频上传</label>
-              <input id="mediaInput" type="file" class="field" accept="image/*,video/*" capture="environment" multiple>
+              <label class="field-label" for="mediaInput">现场照片 (自动压缩入库)</label>
+              <input id="mediaInput" type="file" class="field" accept="image/*" capture="environment" multiple>
               <div id="mediaPreview" class="media-preview">暂无文件</div>
             </div>
 
