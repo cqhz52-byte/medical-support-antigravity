@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Inputs
   const hospitalSearch = document.getElementById('hospitalSearch');
+  const doctorName = document.getElementById('doctorName'); // User input target
   const hospitalOptions = document.getElementById('hospitalOptions');
   const surgeryType = document.getElementById('surgeryType');
   const surgeryOptions = document.getElementById('surgeryOptions');
@@ -39,11 +40,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const mediaInput = document.getElementById('mediaInput');
   const mediaPreview = document.getElementById('mediaPreview');
   
+  // Task UI
+  const pendingTaskList = document.getElementById('pendingTaskList');
+
   // State
   let currentStep = 1;
   const totalSteps = 4;
 
-  // -- V1.4 Configuration & Surgery-Driven Mapping Strategy --
+  // -- V1.5 Configuration & Deep Industry Mapping Strategy --
 
   const deviceTypes = [
     'CT引导手术导航系统', 
@@ -60,7 +64,6 @@ document.addEventListener('DOMContentLoaded', () => {
     'IRE(不可逆电穿孔)', '射频消融', '微波消融', '机器人辅助手术', '穿刺活检', '大隐静脉曲张闭合', '常规高频外科切除'
   ];
 
-  // Surgery -> Device Auto Matching Strategy
   const Surgery_Device_Mapping = {
     '穿刺活检': 'CT引导手术导航系统',
     '射频消融': '射频消融系统',
@@ -71,31 +74,74 @@ document.addEventListener('DOMContentLoaded', () => {
     '常规': '高频电刀'
   };
 
-  // Surgery -> Typical Parameter Templates Generation Strategy (Built-in)
-  // Instead of Device, we base the core params on what Procedure is taking place.
+  // V1.5 Heavy Industry Standard Procedure Dictionaries
   const Surgery_Param_Mapping = {
     'IRE(不可逆电穿孔)': [
-      { label: '输出电压(V)' },
-      { label: '脉冲数(N)' },
-      { label: '针间距(cm)' },
-      { label: '阻抗变化率(%)' }
+      { label: '脉冲电压(V)' },
+      { label: '脉冲宽度(μs)' },
+      { label: '脉冲个数(N)' },
+      { label: '电极针间距(cm)' },
+      { label: '针尖暴露长度(cm)' },
+      { label: '术中阻抗变化率(%)' },
+      { label: '心脏同步(ECG)状态' },
+      { label: '肌肉松弛监测等级' }
     ],
     '射频消融': [
-      { label: '消融时间(min)' },
-      { label: '目标功率(W)' },
-      { label: '终点温度(℃)' },
-      { label: '组织初始阻抗(Ω)' }
+      { label: '术前靶标最大径(cm)' },
+      { label: '输出设定功率(W)' },
+      { label: '消融持续时间(min)' },
+      { label: '针尖暴露长度(cm)' },
+      { label: '穿刺测温表现(℃)' },
+      { label: '阻抗下降比例(%)' }
+    ],
+    '微波消融': [
+      { label: '微波天线及规格型号' },
+      { label: '术前靶向肿瘤大小(cm)' },
+      { label: '输出微波功率(W)' },
+      { label: '微波辐射持续时间(min)' },
+      { label: '消融杀灭预期范围(cm)' }
     ],
     '机器人辅助手术': [
-      { label: '机械臂预跑完成度(%)' },
+      { label: '机械臂套管布局耗时(min)' },
       { label: '空间注册配准误差(mm)' },
-      { label: '机械臂干涉预警次数' }
+      { label: '各臂干涉预警拦截次数' },
+      { label: '关键器械更替架次(次)' },
+      { label: '控制台与患者车对接距离(cm)' },
+      { label: '主控控制台重启及报错记录' }
+    ],
+    '大隐静脉曲张闭合': [
+      { label: '静脉主干直径(mm)' },
+      { label: '消融治疗节段长度(cm)' },
+      { label: '设定闭合目标温度(℃)' },
+      { label: '执行内实际平均温度(℃)' },
+      { label: '导丝回撤速度(cm/s)' },
+      { label: '系统释放总射频能量(J)' }
     ],
     '常规高频外科切除': [
-      { label: '电切功率(W)' },
-      { label: '电凝模式及功率' }
+      { label: '设备电切档位功率(W)' },
+      { label: '设备电凝预设模式及功率' }
     ]
   };
+
+  // Mock Task Assignments
+  const pendingAssignments = [
+    {
+      id: 'TASK-1002',
+      hospital: '北京协和医院',
+      doctor: '张主任',
+      surgery: 'IRE(不可逆电穿孔)',
+      time: '今日 14:00',
+      status: 'pending'
+    },
+    {
+      id: 'TASK-1005',
+      hospital: '武汉同济医院',
+      doctor: '陈教授',
+      surgery: '机器人辅助手术',
+      time: '明日 08:30',
+      status: 'pending'
+    }
+  ];
 
   // Async Fetch Hospitals
   async function loadHospitals() {
@@ -115,11 +161,64 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Render Pending Tasks
+  function renderPendingTasks() {
+    pendingTaskList.innerHTML = '';
+    const activeTasks = pendingAssignments.filter(t => t.status === 'pending');
+    
+    if (activeTasks.length === 0) {
+      pendingTaskList.innerHTML = `<p style="font-size:0.8rem; color:#888; text-align:center;">暂无指派的任务</p>`;
+      return;
+    }
+
+    activeTasks.forEach((task, index) => {
+      const li = document.createElement('li');
+      li.className = 'case-item';
+      li.style.borderColor = '#bae6fd';
+      
+      li.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+          <strong style="color:#0369a1; font-size:0.9rem;">${task.hospital}</strong>
+          <span style="font-size:0.75rem; background:#f0f9ff; color:#0c4a6e; padding:2px 6px; border-radius:4px;">${task.time}</span>
+        </div>
+        <p style="color:#475569;"><strong>类型：</strong>${task.surgery}</p>
+        <p style="color:#475569;"><strong>主刀：</strong>${task.doctor}</p>
+        <button class="primary-btn accept-task-btn" data-index="${index}" style="width:100%; margin-top:10px; padding: 8px; font-size:0.85rem;">一键接单并录入</button>
+      `;
+      pendingTaskList.appendChild(li);
+    });
+
+    // Attach Listeners
+    document.querySelectorAll('.accept-task-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const idx = e.target.getAttribute('data-index');
+        const task = activeTasks[idx];
+
+        // Mark as started
+        task.status = 'started';
+        renderPendingTasks();
+
+        // Data Penetration to Form Pipeline
+        currentStep = 1;
+        updateStepper();
+        
+        hospitalSearch.value = task.hospital;
+        doctorName.value = task.doctor;
+        surgeryType.value = task.surgery;
+
+        // Force trigger mappings
+        surgeryType.dispatchEvent(new Event('change'));
+
+        showView('caseFormView');
+      });
+    });
+  }
+
   // Generate HTML block given an array of param labels
   function renderParamsDOM(templateArray) {
-    dynamicParameters.innerHTML = ''; // clear
+    dynamicParameters.innerHTML = '';
     if(!templateArray || templateArray.length === 0) {
-      dynamicParameters.innerHTML = `<p style="font-size:0.85rem; color:#888;">无默认记录表，请手动补全。</p>`;
+      dynamicParameters.innerHTML = `<p style="font-size:0.85rem; color:#888;">暂无内置模板，请通过下方按钮手动建立。</p>`;
       return;
     }
     for(let i=0; i<templateArray.length; i+=2) {
@@ -145,25 +244,21 @@ document.addEventListener('DOMContentLoaded', () => {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
       `;
-      
       row.querySelector('.param-delete').addEventListener('click', () => row.remove());
       dynamicParameters.appendChild(row);
     }
   }
 
-  // Load Params (Local > System Defaults)
+  // Load Params
   function renderSurgeryParams(surgeryName) {
     let tplToRender = [];
-    // 1. Check User Custom Cache
     const cached = localStorage.getItem('TPL_' + surgeryName);
     if (cached) {
       try {
         tplToRender = JSON.parse(cached);
       } catch(e) {}
     } else {
-      // 2. Exact match in build-in
       tplToRender = Surgery_Param_Mapping[surgeryName] || null;
-      // 3. Partial match fuzzy fallback for build-in
       if (!tplToRender) {
         for (const [key, val] of Object.entries(Surgery_Param_Mapping)) {
           if (surgeryName.includes(key) || key.includes(surgeryName)) {
@@ -173,7 +268,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
     }
-    
     renderParamsDOM(tplToRender || []);
   }
 
@@ -192,6 +286,8 @@ document.addEventListener('DOMContentLoaded', () => {
       opt.value = s;
       surgeryOptions.appendChild(opt);
     });
+
+    renderPendingTasks();
   }
   initData();
 
@@ -199,32 +295,27 @@ document.addEventListener('DOMContentLoaded', () => {
   surgeryType.addEventListener('change', (e) => {
     const val = e.target.value.trim();
     if (!val) return;
-    
-    // Auto map device
     for (const [key, device] of Object.entries(Surgery_Device_Mapping)) {
       if (val.includes(key)) {
         deviceModelSelect.value = device;
         break;
       }
     }
-    // Auto map params
     renderSurgeryParams(val);
   });
 
-  // User Save Custom Template Flow
+  // Save Template
   saveTemplateBtn.addEventListener('click', () => {
     const surgery = surgeryType.value.trim();
     if (!surgery) {
       alert("请先填写或选择上方对应的『手术类型』！");
       return;
     }
-    
     const labels = Array.from(dynamicParameters.querySelectorAll('.param-label-text')).map(el => {
       return { label: el.textContent.trim() || '未命名参数' };
     });
-    
     localStorage.setItem('TPL_' + surgery, JSON.stringify(labels));
-    alert(`✅ 已成功将当前参数栏位设为您针对【${surgery}】的默认模板！\n以后每次新建该手术将自动调用千人千面。`);
+    alert(`✅ 已成功固化！\n本地的 ${surgery} 将直接调用您修改的高阶版本。`);
   });
 
   // Navigation Logic
@@ -286,6 +377,9 @@ document.addEventListener('DOMContentLoaded', () => {
   fabNewCase.addEventListener('click', () => {
     currentStep = 1;
     updateStepper();
+    // Clear out
+    document.getElementById('caseForm').reset();
+    dynamicParameters.innerHTML = '';
     showView('caseFormView');
   });
   btnBack.addEventListener('click', () => {
@@ -312,19 +406,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   btnNext.addEventListener('click', () => {
-    if (currentStep < totalSteps) {
-      currentStep++;
-      updateStepper();
-    }
+    if (currentStep < totalSteps) { currentStep++; updateStepper(); }
   });
   btnPrev.addEventListener('click', () => {
-    if (currentStep > 1) {
-      currentStep--;
-      updateStepper();
-    }
+    if (currentStep > 1) { currentStep--; updateStepper(); }
   });
 
-  // Add Custom Param Button
+  // Custom Param Button
   addParamBtn.addEventListener('click', () => {
     const row = document.createElement('div');
     row.className = 'field-group param-row';
@@ -378,41 +466,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Files
   paperParamInput.addEventListener('change', async (e) => {
-    const files = e.target.files;
-    if (files.length === 0) return;
-    paperParamPreview.textContent = '纸质单据归档处理中...';
-    for (let i = 0; i < files.length; i++) {
-      if (files[i].type.startsWith('image/')) {
-        const base64 = await compressImage(files[i]);
-        const imgEl = document.createElement('img');
-        imgEl.src = base64;
-        imgEl.style.cssText = 'width:100%; max-width:140px; border-radius:6px; margin:4px; box-shadow:0 4px 6px rgba(0,0,0,0.1); border:1px solid #e2c095;';
+    if (e.target.files.length === 0) return;
+    paperParamPreview.textContent = '纸质单据处理中...';
+    for (let i = 0; i < e.target.files.length; i++) {
+        const base64 = await compressImage(e.target.files[i]);
+        const img = document.createElement('img');
+        img.src = base64;
+        img.style.cssText = 'width:100%; max-width:140px; border-radius:6px; margin:4px; border:1px solid #e2c095;';
         if (i === 0) paperParamPreview.innerHTML = ''; 
-        paperParamPreview.appendChild(imgEl);
-      }
+        paperParamPreview.appendChild(img);
     }
   });
 
   mediaInput.addEventListener('change', async (e) => {
-    const files = e.target.files;
-    if (files.length === 0) return (mediaPreview.textContent = '暂无现场图片');
-    mediaPreview.textContent = '画质极速压缩中...';
-    for (let i = 0; i < files.length; i++) {
-      if (files[i].type.startsWith('image/')) {
-        const base64 = await compressImage(files[i]);
-        const imgEl = document.createElement('img');
-        imgEl.src = base64;
-        imgEl.style.cssText = 'width:100%; max-width:140px; border-radius:8px; margin:4px;';
+    if (e.target.files.length === 0) return (mediaPreview.textContent = '暂无现场图片');
+    mediaPreview.textContent = '极速压缩中...';
+    for (let i = 0; i < e.target.files.length; i++) {
+        const base64 = await compressImage(e.target.files[i]);
+        const img = document.createElement('img');
+        img.src = base64;
+        img.style.cssText = 'width:100%; max-width:140px; border-radius:8px; margin:4px;';
         if (i === 0) mediaPreview.innerHTML = ''; 
-        mediaPreview.appendChild(imgEl);
-      }
+        mediaPreview.appendChild(img);
     }
   });
 
   // Submit
   document.getElementById('caseForm').addEventListener('submit', (e) => {
     e.preventDefault();
-    alert('全部状态捕获！跟台记录均已压缩保存于本地前端。');
+    alert('全部状态捕获！跟台记录归档完毕。');
     
     e.target.reset();
     mediaPreview.textContent = '暂无文件';
