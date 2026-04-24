@@ -491,18 +491,68 @@ body {
 .pwa-btn-primary { background: linear-gradient(135deg, #0f766e, #115e59); color: white; box-shadow: 0 8px 16px rgba(15,118,110,0.3);}
 .pwa-btn-cancel { background: #f1f5f9; color: #64748b; }
 
-/* V3.0 Role Tabs (Login Page) */
+/* V3.5 Role Tabs (iOS Slide Style) */
 .role-switch {
-  display: flex; gap: 6px; background: #f1f5f9; padding: 6px; border-radius: 16px; margin-bottom: 24px;
+  display: flex; position: relative; background: #e2e8f0; padding: 4px; border-radius: 12px; margin-bottom: 24px;
+}
+.role-indicator {
+  position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px);
+  background: #ffffff; border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(15, 118, 110, 0.15), 0 1px 2px rgba(0,0,0,0.05);
+  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  z-index: 1;
+}
+.role-switch.isAdmin .role-indicator {
+  transform: translateX(100%);
 }
 .role-tab {
-  flex: 1; text-align: center; padding: 12px 10px; border-radius: 12px;
-  font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  color: #94a3b8; background: transparent;
+  flex: 1; text-align: center; padding: 12px 10px; border-radius: 10px;
+  font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: color 0.3s;
+  color: #64748b; background: transparent; z-index: 2; position: relative;
 }
 .role-tab input { display: none; }
 .role-tab.is-active {
-  background: #ffffff; color: #0f766e;
-  box-shadow: 0 4px 16px rgba(15, 118, 110, 0.12);
-  transform: scale(1.02);
+  color: #0f766e;
 }
+
+/* V3.5 Admin Dashboard UI */
+.admin-header {
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  color: white; border-radius: 16px; padding: 24px 20px;
+  margin-bottom: -20px; box-shadow: var(--shadow);
+  position: relative; overflow: hidden;
+}
+.admin-header::after {
+  content: ''; position: absolute; right: -20px; top: -30px;
+  width: 150px; height: 150px; background: radial-gradient(circle, rgba(20,184,166,0.2) 0%, transparent 70%);
+}
+.admin-header h2 { margin: 0 0 4px; font-size: 1.4rem; z-index: 1; position: relative; }
+.admin-header p { margin: 0; font-size: 0.85rem; color: #94a3b8; z-index: 1; position: relative; }
+
+.admin-form-card {
+  background: #ffffff; border-radius: 20px; padding: 24px 20px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.08); margin: 0 10px 20px 10px;
+  position: relative; z-index: 2; border: 1px solid rgba(255,255,255,0.8);
+}
+.glass-field {
+  background: #f8fafc; border: 1px solid #e2e8f0;
+  border-radius: 12px; padding: 12px 16px; font-size: 0.95rem; width: 100%; transition: 0.3s;
+}
+.glass-field:focus {
+  background: #ffffff; border-color: #0f766e; box-shadow: 0 0 0 4px rgba(15,118,110,0.1);
+  outline: none;
+}
+.two-col { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 14px;}
+.two-col > div { flex: 1; min-width: 120px; }
+.dispatch-btn {
+  background: linear-gradient(135deg, #10b981, #059669); color: white;
+  border: none; border-radius: 14px; padding: 14px; width: 100%;
+  font-size: 1.05rem; font-weight: bold; margin-top: 10px;
+  box-shadow: 0 8px 16px rgba(16,185,129,0.25); transition: 0.2s;
+}
+.dispatch-btn:active { transform: scale(0.97); }
+
+.list-header {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+}
+/* end styles */
