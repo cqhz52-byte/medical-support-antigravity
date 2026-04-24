@@ -1,55 +1,69 @@
--- 1. 创建跟台记录表
-CREATE TABLE clinical_cases (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
-  engineer_id UUID REFERENCES auth.users(id), -- 关联登录用户
-  hospital VARCHAR(100),
-  doctor_name VARCHAR(50),
-  device_model VARCHAR(50),
-  power_w NUMERIC,
-  pressure_kpa NUMERIC,
-  is_abnormal BOOLEAN DEFAULT FALSE,
-  abnormal_desc TEXT,
-  image_url TEXT
-);
+-- =======================================================
+-- 医疗器械跟台 SaaS - Supabase 云端全量建表及权限安全脚本
+-- =======================================================
 
--- 2. 设置行级安全 (RLS) - 仅允许登录用户插入和查看自己的数据
-ALTER TABLE clinical_cases ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "工程师只能看自己的记录" ON clinical_cases FOR SELECT USING (auth.uid() = engineer_id);
-CREATE POLICY "工程师可以插入记录" ON clinical_cases FOR INSERT WITH CHECK (auth.uid() = engineer_id);
-
--- 3. 创建一个存储桶 (Bucket) 用于存放压缩后的图片
-INSERT INTO storage.buckets (id, name, public) VALUES ('case-images', 'case-images', true);
-
--- ==== V1.6 云端跨端派单系统 ====
-
--- 4. 扩展基础用户体系，确立权限身份 (Role-Based Access)
--- (实际上 Supabase Auth 自己管用户，可以通过在 public 生成 user_profiles 进行桥接记录)
+-- 1. 扩展基础用户体系 (联动 Supabase Auth)
+-- 当新用户注册时，可以使用 postgres trigger 自动写过来或者前端写入
 CREATE TABLE user_profiles (
   id UUID REFERENCES auth.users(id) PRIMARY KEY,
   full_name VARCHAR(100),
   role VARCHAR(50) DEFAULT 'engineer' -- 'engineer' or 'admin'
 );
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "开放所有人查询权限" ON user_profiles FOR SELECT USING (true);
+CREATE POLICY "允许认证用户修改自己的Profile" ON user_profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "允许认证用户插入自己的Profile" ON user_profiles FOR INSERT WITH CHECK (auth.uid() = id);
 
--- 5. 调度管理派发表 (Dispatch Tasks SQL Mapping)
+
+-- 2. 调度管理派发表 (跨端通讯中枢)
 CREATE TABLE dispatch_tasks (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
   admin_id UUID REFERENCES auth.users(id),       -- 派发者管理员
-  engineer_id UUID REFERENCES auth.users(id),    -- 被指派的具体工程师
-  engineer_name VARCHAR(100),                    -- 方便快速查询的脱水记录
-  target_hospital VARCHAR(200) NOT NULL,         -- 目的地医院
-  target_doctor VARCHAR(100),                    -- 对接医生
-  scheduled_time VARCHAR(100),                   -- 预计手术发生时间
-  procedure_type VARCHAR(100),                   -- 手术类型分类
-  status VARCHAR(20) DEFAULT 'pending'           -- 'pending'待接单, 'started'进行中, 'completed'已完成
+  engineer_id UUID,                              -- 如果未定则为空
+  engineer_name VARCHAR(100),                    -- 姓名明文，冗余以供展示
+  target_hospital VARCHAR(200) NOT NULL,
+  target_doctor VARCHAR(100),
+  scheduled_time VARCHAR(100),
+  procedure_type VARCHAR(100),                   -- IRE, 机器人等
+  status VARCHAR(20) DEFAULT 'pending'           -- 'pending'待接单, 'started'进行中表单填充, 'completed'完结
 );
-
--- 设置安全策略
 ALTER TABLE dispatch_tasks ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "管理员可全量增删查改" ON dispatch_tasks FOR ALL USING (
-  EXISTS (SELECT 1 FROM user_profiles WHERE id = auth.uid() AND role = 'admin')
+CREATE POLICY "所有已认证用户均可查看任务流" ON dispatch_tasks FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "所有已认证人员可以创建或更新表单状态" ON dispatch_tasks FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "开启行级更新" ON dispatch_tasks FOR UPDATE USING (auth.role() = 'authenticated');
+
+
+-- 3. 核心动态跟台记录落库表 (采用 JSONB 包容非标术式)
+CREATE TABLE clinical_cases (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  task_id UUID REFERENCES dispatch_tasks(id),     -- 若是从派单中来的关联项
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+  engineer_id UUID REFERENCES auth.users(id),
+  engineer_name VARCHAR(100),
+  hospital VARCHAR(100),
+  doctor_name VARCHAR(50),
+  surgery_type VARCHAR(100),
+  device_model VARCHAR(50),
+  
+  -- ★ 核心：使用 JSONB 存纳任意长度与格式的器械动态参数，抛弃传统的列举字段
+  dynamic_parameters JSONB,   -- 示例: [{"label": "脉冲", "value": 90}, ...]
+  
+  -- ★ 衍生：存放由画布压缩后的 Base64 或提取的纸质工艺单
+  paper_records JSONB,        
+  media_photos JSONB,
+  consumable_qr_codes JSONB,  -- 录入的条码物料
+  
+  is_abnormal BOOLEAN DEFAULT FALSE,
+  outcome_summary TEXT,
+  complications TEXT
 );
-CREATE POLICY "跟台人员仅能查看并接载派发给自己的任务" ON dispatch_tasks FOR SELECT USING (
-  engineer_id = auth.uid()
-);
+ALTER TABLE clinical_cases ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "工程师只能看自己的跟台大表" ON clinical_cases FOR SELECT USING (auth.uid() = engineer_id);
+CREATE POLICY "所有认证用户可以上报跟台大表" ON clinical_cases FOR INSERT WITH CHECK (auth.uid() = engineer_id);
+
+
+-- 4. 若要将压缩图片转为实体存储桶 (视前端策略而定)
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('clinical-media-vault', 'clinical-media-vault', true)
+ON CONFLICT DO NOTHING;
