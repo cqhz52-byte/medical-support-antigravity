@@ -397,9 +397,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('pwaInstallBtn');
     const closeBtn = document.getElementById('pwaCloseBtn');
     
-    // 如果已经是在独立应用模式下运行，则静默
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-    if (isStandalone) {
+    function isStandalone() {
+      return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone || window.location.search.includes('source=pwa');
+    }
+
+    if (isStandalone()) {
       banner.style.display = 'none';
       return;
     }
@@ -407,45 +409,52 @@ document.addEventListener('DOMContentLoaded', () => {
     let deferredPrompt = null;
     let hasPromptFired = false;
 
-    // 安卓/Windows Chrome/Edge 猎捕标准原生提示
     window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault(); // 阻止浏览器自带的默认提示，按我们的 UI 走
+      e.preventDefault(); 
       deferredPrompt = e;
       hasPromptFired = true;
-      msg.textContent = '原生加持：点击安装，体验零延迟、不掉线的独立 PWA 应用。';
-      btn.style.display = 'block';
-      banner.style.display = 'flex';
+      if (!isStandalone()) {
+        msg.textContent = '原生加持：点击安装，体验零延迟、不掉线的独立 PWA 应用。';
+        btn.style.display = 'block';
+        banner.style.display = 'flex';
+      }
+    });
+
+    window.addEventListener('appinstalled', () => {
+      deferredPrompt = null;
+      banner.style.display = 'none';
+      console.log('PWA 已成功安装到系统！');
     });
 
     btn.addEventListener('click', async () => {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') banner.style.display = 'none';
-        deferredPrompt = null;
+      if (!deferredPrompt) {
+        alert("当前环境拦截到系统不支持，请在浏览器菜单中手动添加到桌面。");
+        return;
       }
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') banner.style.display = 'none';
+      deferredPrompt = null;
     });
 
     closeBtn.addEventListener('click', () => { banner.style.display = 'none'; });
 
-    // iOS (苹果 Safari) 与 安卓异常环境 (微信/未授权 SVG) 的防漏网兜底
     const isIos = () => { return /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase()); };
     const isAndroid = () => { return /android/.test(window.navigator.userAgent.toLowerCase()); };
     
     setTimeout(() => {
-      if (isStandalone || hasPromptFired) return; // 已经弹成或者独立模式则跳过
+      if (isStandalone() || hasPromptFired) return;
       
       if (isIos()) {
-        msg.textContent = '苹果系统强制：请点击底部 ⬆️（分享）-> 滑动找到 [添加到主屏幕] 从而获取全屏沉浸和防挂断特权。';
+        msg.textContent = '苹果系统要求：请点击底部 ⬆️（分享）-> 找到 [添加到主屏幕] 从而获取全屏沉浸特权。';
         btn.style.display = 'none';
         banner.style.display = 'flex';
       } else if (isAndroid()) {
-        // V2.2 修复: 安卓如果没有弹出(微信内置/国产内核限制/缺少静态png)，走手工引导流
-        msg.textContent = '安卓内核限制：请点击右上角 ┇ (或底部菜单) -> 找到 [添加到桌面或主屏幕] 来赋予系统最高级别长驻运行权。';
+        msg.textContent = '安卓内核限制：请您点击浏览器右上角 ┇ 菜单 -> 找到 [添加到主屏幕] 赋予长驻运行权。';
         btn.style.display = 'none';
         banner.style.display = 'flex';
       }
-    }, 4500); // 延时一点弹出，作为最后一道防线
+    }, 4500); 
   }
 
   initData();
