@@ -43,12 +43,12 @@
           <form id="loginForm" class="login-form" novalidate>
             <h3>身份认证</h3>
             <div class="field-group">
-              <label class="field-label" for="loginUsername">工号 / 姓名 <span style="color:#888;font-size:0.75rem;font-weight:normal;">(多端测试:请用不同姓名)</span></label>
-              <input id="loginUsername" type="text" class="field" placeholder="请输入您的系统身份" required>
+              <label class="field-label" for="loginPhone">系统注册手机号</label>
+              <input id="loginPhone" type="tel" class="field" placeholder="请输入 11 位手机号码" required>
             </div>
             <div class="field-group">
               <label class="field-label" for="loginPassword">密 码</label>
-              <input id="loginPassword" type="password" class="field" placeholder="请输入密码校验" required>
+              <input id="loginPassword" type="password" class="field" placeholder="请输入登录密码" required>
             </div>
             <button type="submit" class="primary-btn btn-block" style="margin-top:20px; font-size:1.05rem;">确 认 登 录</button>
             <p class="auth-switch">还没开户？ <span id="toRegisterBtn" class="auth-link">快速注册绑定手机</span></p>
@@ -58,12 +58,16 @@
           <form id="registerForm" class="login-form is-hidden" novalidate>
             <h3>新用户录入</h3>
             <div class="field-group">
-              <label class="field-label" for="regUsername">设置真实首要姓名</label>
+              <label class="field-label" for="regPhone">📱 绑定手机号 (用于登录)</label>
+              <input id="regPhone" type="tel" class="field" placeholder="输入 11 位有效手机号" required pattern="[0-9]{11}">
+            </div>
+            <div class="field-group">
+              <label class="field-label" for="regUsername">真实首要姓名 (对其他同事可见)</label>
               <input id="regUsername" type="text" class="field" placeholder="例如：李工" required>
             </div>
             <div class="field-group">
-              <label class="field-label" for="regPassword">初始授权密码</label>
-              <input id="regPassword" type="password" class="field" placeholder="数字口令" required>
+              <label class="field-label" for="regPassword">初始授权密码 (至少 6 位)</label>
+              <input id="regPassword" type="password" class="field" placeholder="设置安全登录口令" required>
             </div>
             <button type="submit" class="primary-btn btn-block" style="margin-top:20px; font-size:1.05rem;">立即进站</button>
             <p class="auth-switch">已有授权档案？ <span id="toLoginBtn" class="auth-link">返回认证</span></p>

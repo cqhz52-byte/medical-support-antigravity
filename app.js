@@ -133,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
   toRegisterBtn.addEventListener('click', () => { loginForm.classList.add('is-hidden'); registerForm.classList.remove('is-hidden'); });
   toLoginBtn.addEventListener('click', () => { registerForm.classList.add('is-hidden'); loginForm.classList.remove('is-hidden'); });
 
-  function getEmailFromName(name) { return `${name}@antigravity.clinic`; } // Supabase Auth Mock Wrapper
+  function getEmailFromPhone(phone) { return `${phone}@antigravity.clinic`; } // Supabase Auth Mock Wrapper
 
   async function syncProfileRole() {
     try {
@@ -148,14 +148,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   registerForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const phone = document.getElementById('regPhone').value;
     const name = document.getElementById('regUsername').value;
     const pwd = document.getElementById('regPassword').value;
     const role = document.querySelector('input[name="authRole"]:checked').value;
-    if(!name || !pwd) return;
+    if(!phone || !name || !pwd) return;
 
     const btn = registerForm.querySelector('button'); btn.textContent = '注册中...';
     try {
-      const { data, error } = await supabase.auth.signUp({ email: getEmailFromName(name), password: pwd });
+      const { data, error } = await supabase.auth.signUp({ email: getEmailFromPhone(phone), password: pwd });
       if(error) throw error;
       // Also init profile
       if(data.user) {
@@ -171,18 +172,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const name = document.getElementById('loginUsername').value;
+    const phone = document.getElementById('loginPhone').value;
     const pwd = document.getElementById('loginPassword').value;
-    if(!name || !pwd) return;
+    if(!phone || !pwd) return;
 
     const btn = loginForm.querySelector('button'); btn.textContent = '认证中...';
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email: getEmailFromName(name), password: pwd });
+      const { data, error } = await supabase.auth.signInWithPassword({ email: getEmailFromPhone(phone), password: pwd });
       if(error) throw error;
-      localStorage.setItem('cachedName', name);
       checkAuthSession();
     } catch(err) {
-       alert('登录失败: 请检查工号或密码。如无账号请先注册。（错误:'+err.message+')');
+       alert('登录失败: 请检查手机号或密码。如无账号请先注册。（错误:'+err.message+')');
     }
     btn.textContent = '确 认 登 录';
   });
