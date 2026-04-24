@@ -225,6 +225,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   
+  // V2.0: Background & Weak Network Defenses
+  let pollingIntervalId = null;
+
+  function startFallbackPolling() {
+    if (pollingIntervalId) clearInterval(pollingIntervalId);
+    pollingIntervalId = setInterval(() => {
+      const name = localStorage.getItem('cachedName');
+      if (currentRole === 'admin') renderAdminTasks(true); // true 代表静默拉取不报错
+      else if (currentRole === 'engineer' && name) renderPendingTasks(name, true);
+    }, 30000); // 30 秒刚性轮询一次，兜底 websocket 断连
+  }
+
+  // 手机从黑屏/后台切回前台瞬间，强行激活一次拉取！
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      console.log('App Foregrounded - Forcing task sync...');
+      const name = localStorage.getItem('cachedName');
+      if (currentRole === 'admin') renderAdminTasks();
+      else if (currentRole === 'engineer' && name) renderPendingTasks(name);
+    }
+  });
+
   // Realtime Supabase Listeners (For instant cross-device drops)
   supabase.channel('public:dispatch_tasks').on('postgres_changes', { event: '*', schema: 'public', table: 'dispatch_tasks' }, (payload) => {
     const engineerName = localStorage.getItem('cachedName');
@@ -252,7 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   // --- Database Renders ---
-  async function renderAdminTasks() {
+  async function renderAdminTasks(isSilent = false) {
     try {
       const { data, error } = await supabase.from('dispatch_tasks').select('*').order('created_at', { ascending: false });
       if(error) throw error;
@@ -271,7 +293,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch(e) { console.warn(e); }
   }
 
-  async function renderPendingTasks(engineerName) {
+  async function renderPendingTasks(engineerName, isSilent = false) {
     try {
       const { data, error } = await supabase.from('dispatch_tasks').select('*').eq('engineer_name', engineerName).eq('status', 'pending');
       if(error) throw error;
@@ -364,6 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadEngineers();
     deviceTypes.forEach(d => { const opt = document.createElement('option'); opt.value = d; opt.textContent = d; deviceModelSelect.appendChild(opt); });
     defaultSurgeries.forEach(s => { const opt = document.createElement('option'); opt.value = s; surgeryOptions.appendChild(opt); });
+    startFallbackPolling(); // 开启心跳防御策略
   }
   initData();
   setTimeout(checkAuthSession, 300); // Start Auth Engine

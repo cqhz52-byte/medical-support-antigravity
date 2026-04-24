@@ -1,0 +1,17 @@
+{
+  "name": "临床医疗设备跟台指派系统",
+  "short_name": "跟台调度",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0f766e",
+  "theme_color": "#0f766e",
+  "description": "专为医疗设备特种保障队伍打造的云原生跟台与调度系统",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

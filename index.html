@@ -4,8 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0f766e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="./icon.svg">
   <title>临床跟台 Case Support</title>
   <link rel="manifest" href="./manifest.json">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./styles.css">
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
@@ -294,5 +298,17 @@
   </div>
 
   <script src="./app.js"></script>
+  <script>
+    // V2.0: 注册 Service Worker 赋予原生生命
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').then(reg => {
+          console.log('ServiceWorker 注册成功并待命');
+        }).catch(err => {
+          console.error('ServiceWorker 离线引擎失效:', err);
+        });
+      });
+    }
+  </script>
 </body>
 </html>
