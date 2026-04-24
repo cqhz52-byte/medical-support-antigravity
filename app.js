@@ -387,7 +387,51 @@ document.addEventListener('DOMContentLoaded', () => {
     deviceTypes.forEach(d => { const opt = document.createElement('option'); opt.value = d; opt.textContent = d; deviceModelSelect.appendChild(opt); });
     defaultSurgeries.forEach(s => { const opt = document.createElement('option'); opt.value = s; surgeryOptions.appendChild(opt); });
     startFallbackPolling(); // 开启心跳防御策略
+    detectPWAInstallability(); // V2.1 启动安装检测
   }
+  
+  // === V2.1 PWA 智能安装引导拦截器 ===
+  function detectPWAInstallability() {
+    const banner = document.getElementById('pwaInstallBanner');
+    const msg = document.getElementById('pwaInstallMsg');
+    const btn = document.getElementById('pwaInstallBtn');
+    const closeBtn = document.getElementById('pwaCloseBtn');
+    
+    // 如果已经是在独立应用模式下运行，则静默
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    if (isStandalone) return;
+
+    let deferredPrompt;
+
+    // 安卓/Windows Chrome/Edge 猎捕标准原生提示
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault(); // 阻止浏览器自带的默认提示，按我们的 UI 走
+      deferredPrompt = e;
+      banner.style.display = 'flex';
+    });
+
+    btn.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') banner.style.display = 'none';
+        deferredPrompt = null;
+      }
+    });
+
+    closeBtn.addEventListener('click', () => { banner.style.display = 'none'; });
+
+    // iOS (苹果 Safari) 非自发唤醒，只能使用文案指导
+    const isIos = () => { return /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase()); };
+    if (isIos() && !isStandalone) {
+      setTimeout(() => {
+        msg.textContent = '苹果用户专享：请点击底部 ⬆️（分享）-> 选择 [添加到主屏幕] 获得沉浸体验及后台防杀能力特权。';
+        btn.style.display = 'none'; // 苹果不让通过代码点击，只能手按
+        banner.style.display = 'flex';
+      }, 3000); // 延时一点弹出，不造成压迫感
+    }
+  }
+
   initData();
   setTimeout(checkAuthSession, 300); // Start Auth Engine
 
