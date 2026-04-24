@@ -2,6 +2,11 @@
 -- 医疗器械跟台 SaaS - Supabase 云端全量建表及权限安全脚本
 -- =======================================================
 
+-- ⚠️ 执行此脚本将完全清除旧实验数据（为了换取绝对干净的 V1.9 完整重构包）
+DROP TABLE IF EXISTS clinical_cases CASCADE;
+DROP TABLE IF EXISTS dispatch_tasks CASCADE;
+DROP TABLE IF EXISTS user_profiles CASCADE;
+
 -- 1. 扩展基础用户体系 (联动 Supabase Auth)
 -- 当新用户注册时，可以使用 postgres trigger 自动写过来或者前端写入
 CREATE TABLE user_profiles (
