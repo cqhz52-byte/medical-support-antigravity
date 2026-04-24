@@ -215,6 +215,11 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('welcomeText').textContent = `欢迎登入中台，${name}。`;
         showView('dashboardView');
         renderPendingTasks(name);
+        
+        // V1.9: 请求桌面级通知权限
+        if ('Notification' in window && Notification.permission === 'default') {
+          Notification.requestPermission();
+        }
       }
     } else {
       showView('loginView');
@@ -222,9 +227,28 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   // Realtime Supabase Listeners (For instant cross-device drops)
-  supabase.channel('public:dispatch_tasks').on('postgres_changes', { event: '*', schema: 'public', table: 'dispatch_tasks' }, () => {
-    if (currentRole === 'admin') renderAdminTasks();
-    else if (currentRole === 'engineer') renderPendingTasks(localStorage.getItem('cachedName'));
+  supabase.channel('public:dispatch_tasks').on('postgres_changes', { event: '*', schema: 'public', table: 'dispatch_tasks' }, (payload) => {
+    const engineerName = localStorage.getItem('cachedName');
+    
+    if (currentRole === 'admin') {
+      renderAdminTasks();
+    } else if (currentRole === 'engineer') {
+      renderPendingTasks(engineerName);
+      
+      // V1.9: OS Level Native Push Notification
+      if (payload.eventType === 'INSERT' && payload.new.engineer_name === engineerName) {
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('🚨 医疗跟台新指派', {
+            body: `医院: ${payload.new.target_hospital}\n术式: ${payload.new.procedure_type}\n时间: ${payload.new.scheduled_time.replace('T', ' ')}`,
+            icon: 'https://cdn-icons-png.flaticon.com/512/3063/3063224.png',
+            requireInteraction: true // 让通知保持在屏幕上直到工程师点击
+          });
+          
+          // 如果支持，还可以让设备震动
+          if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
+        }
+      }
+    }
   }).subscribe();
 
 
