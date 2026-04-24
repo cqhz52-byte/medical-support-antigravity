@@ -62,7 +62,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const dpTime = document.getElementById('dpTime');
   const dpEquipment = document.getElementById('dpEquipment');
   const dpRemarks = document.getElementById('dpRemarks');
-  const engineerList = document.getElementById('engineerList');
   const adminDispatchList = document.getElementById('adminDispatchList');
   const refreshAdminTasksBtn = document.getElementById('refreshAdminTasksBtn');
 
@@ -352,9 +351,9 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const { data, error } = await supabase.from('user_profiles').select('full_name').eq('role', 'engineer');
       if (!error && data) {
-        engineerList.innerHTML = '';
+        dpEngineer.innerHTML = '<option value="" disabled selected>下拉选择真实工程师...</option>';
         data.forEach(user => {
-          const opt = document.createElement('option'); opt.value = user.full_name; engineerList.appendChild(opt);
+          const opt = document.createElement('option'); opt.value = user.full_name; opt.textContent = user.full_name; dpEngineer.appendChild(opt);
         });
       }
     } catch(e) {}

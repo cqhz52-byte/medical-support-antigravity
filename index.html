@@ -86,11 +86,10 @@
         <div class="card" style="border-left: 4px solid #10b981;">
           <h3 style="margin-bottom: 12px; display:flex; align-items:center; gap:6px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> 新建工单派发</h3>
           <form id="dispatchForm" novalidate>
-            <label class="field-label" for="dpEngineer">指派给谁 (系统注册工程师)</label>
-            <input id="dpEngineer" list="engineerList" class="field" placeholder="请选择或输入工程师姓名" required>
-            <datalist id="engineerList">
-              <!-- JS 自动从云端 user_profiles 灌入 -->
-            </datalist>
+            <label class="field-label" for="dpEngineer">指派给谁 (限系统真实注册账号)</label>
+            <select id="dpEngineer" class="field" required>
+              <option value="" disabled selected>下拉选择真实工程师...</option>
+            </select>
 
             <label class="field-label" for="dpHospital">派往医院 (支持全量库检索)</label>
             <input id="dpHospital" list="hospitalOptions" class="field" placeholder="请检索库内医院名称..." required>
