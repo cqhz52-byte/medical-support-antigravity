@@ -399,14 +399,21 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 如果已经是在独立应用模式下运行，则静默
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-    if (isStandalone) return;
+    if (isStandalone) {
+      banner.style.display = 'none';
+      return;
+    }
 
-    let deferredPrompt;
+    let deferredPrompt = null;
+    let hasPromptFired = false;
 
     // 安卓/Windows Chrome/Edge 猎捕标准原生提示
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault(); // 阻止浏览器自带的默认提示，按我们的 UI 走
       deferredPrompt = e;
+      hasPromptFired = true;
+      msg.textContent = '原生加持：点击安装，体验零延迟、不掉线的独立 PWA 应用。';
+      btn.style.display = 'block';
       banner.style.display = 'flex';
     });
 
@@ -421,15 +428,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     closeBtn.addEventListener('click', () => { banner.style.display = 'none'; });
 
-    // iOS (苹果 Safari) 非自发唤醒，只能使用文案指导
+    // iOS (苹果 Safari) 与 安卓异常环境 (微信/未授权 SVG) 的防漏网兜底
     const isIos = () => { return /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase()); };
-    if (isIos() && !isStandalone) {
-      setTimeout(() => {
-        msg.textContent = '苹果用户专享：请点击底部 ⬆️（分享）-> 选择 [添加到主屏幕] 获得沉浸体验及后台防杀能力特权。';
-        btn.style.display = 'none'; // 苹果不让通过代码点击，只能手按
+    const isAndroid = () => { return /android/.test(window.navigator.userAgent.toLowerCase()); };
+    
+    setTimeout(() => {
+      if (isStandalone || hasPromptFired) return; // 已经弹成或者独立模式则跳过
+      
+      if (isIos()) {
+        msg.textContent = '苹果系统强制：请点击底部 ⬆️（分享）-> 滑动找到 [添加到主屏幕] 从而获取全屏沉浸和防挂断特权。';
+        btn.style.display = 'none';
         banner.style.display = 'flex';
-      }, 3000); // 延时一点弹出，不造成压迫感
-    }
+      } else if (isAndroid()) {
+        // V2.2 修复: 安卓如果没有弹出(微信内置/国产内核限制/缺少静态png)，走手工引导流
+        msg.textContent = '安卓内核限制：请点击右上角 ┇ (或底部菜单) -> 找到 [添加到桌面或主屏幕] 来赋予系统最高级别长驻运行权。';
+        btn.style.display = 'none';
+        banner.style.display = 'flex';
+      }
+    }, 4500); // 延时一点弹出，作为最后一道防线
   }
 
   initData();
