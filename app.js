@@ -1,4 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
+  // 解决手机端点击空白处收起键盘问题
+  document.addEventListener('touchstart', (e) => {
+    const t = e.target.tagName;
+    if (t !== 'INPUT' && t !== 'TEXTAREA' && t !== 'SELECT' && t !== 'BUTTON') {
+      document.activeElement.blur();
+    }
+  }, { passive: true });
+
   // === Supabase Initialization ===
   const SUPABASE_URL = 'https://rcdwxpckyeloqbwoggbq.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_PqGg_I2ElFiWkU1BHAY72w_0HlZQRcZ';
@@ -143,12 +151,26 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- Supabase Authenticaton ---
-  roleRadios.forEach(radio => {
-    radio.addEventListener('change', (e) => {
-      document.querySelectorAll('.role-tab').forEach(lbl => lbl.style.color = '#64748b');
-      e.target.parentNode.style.color = '#000';
-    });
-  });
+  const roleSwitchContainer = document.getElementById('roleSwitchContainer');
+  const tabEngineer = document.getElementById('tabEngineer');
+  const tabAdmin = document.getElementById('tabAdmin');
+  
+  function setRoleTab(role) {
+    tabEngineer.classList.remove('is-active');
+    tabAdmin.classList.remove('is-active');
+    if (role === 'admin') {
+      tabAdmin.classList.add('is-active');
+      roleSwitchContainer.classList.add('isAdmin');
+      document.querySelector('input[name="authRole"][value="admin"]').checked = true;
+    } else {
+      tabEngineer.classList.add('is-active');
+      roleSwitchContainer.classList.remove('isAdmin');
+      document.querySelector('input[name="authRole"][value="engineer"]').checked = true;
+    }
+  }
+  
+  tabEngineer.addEventListener('click', () => setRoleTab('engineer'));
+  tabAdmin.addEventListener('click', () => setRoleTab('admin'));
   toRegisterBtn.addEventListener('click', () => { loginForm.classList.add('is-hidden'); registerForm.classList.remove('is-hidden'); });
   toLoginBtn.addEventListener('click', () => { registerForm.classList.add('is-hidden'); loginForm.classList.remove('is-hidden'); });
 
@@ -161,8 +183,13 @@ document.addEventListener('DOMContentLoaded', () => {
         currentRole = data.role;
         localStorage.setItem('userRole', currentRole);
         localStorage.setItem('cachedName', data.full_name);
+      } else {
+        currentRole = document.querySelector('input[name="authRole"]:checked').value;
       }
-    } catch(e) { console.warn('Pofile fetch fail', e); }
+    } catch(e) { 
+      console.warn('Profile fetch fail', e); 
+      currentRole = document.querySelector('input[name="authRole"]:checked').value;
+    }
   }
 
   registerForm.addEventListener('submit', async (e) => {
@@ -226,6 +253,9 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('adminWelcomeText').textContent = `最高指控官：${name}`;
         showView('adminDashboardView');
         renderAdminTasks();
+        
+        // 管理员也订阅实时推送，接收工程师提交的更新
+        subscribeToRealtimePush(name);
       } else {
         document.getElementById('welcomeText').textContent = `欢迎登入中台，${name}。`;
         showView('dashboardView');
@@ -235,12 +265,41 @@ document.addEventListener('DOMContentLoaded', () => {
         if ('Notification' in window && Notification.permission === 'default') {
           Notification.requestPermission();
         }
+        
+        // 🚀 实时订阅后台调度指派 (Supabase Realtime)
+        subscribeToRealtimePush(name);
       }
     } else {
       showView('loginView');
     }
   }
   
+  let realtimeChannel = null;
+  function subscribeToRealtimePush(engineerName) {
+    if (realtimeChannel) {
+      supabase.removeChannel(realtimeChannel);
+    }
+    realtimeChannel = supabase.channel('public:dispatch_tasks')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'dispatch_tasks' }, payload => {
+        const newTask = payload.new;
+        if (newTask.engineer_name === engineerName && currentRole === 'engineer') {
+          // 收到新的派单，触发系统通知和声音
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('🚨 新的手术跟台派单', {
+              body: `医院: ${newTask.target_hospital}\n医生: ${newTask.target_doctor || '未指定'}\n设备: ${newTask.procedure_type}`,
+              icon: './icon-192.png'
+            });
+          } else {
+            alert(`🚨 收到新的派单：${newTask.target_hospital} - ${newTask.target_doctor}`);
+          }
+          renderPendingTasks(engineerName); // 刷新任务列表
+        } else if (currentRole === 'admin') {
+          renderAdminTasks(); // 管理员自己也刷新
+        }
+      })
+      .subscribe();
+  }
+
   // V2.0: Background & Weak Network Defenses
   let pollingIntervalId = null;
 
@@ -346,7 +405,10 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch(e) { console.warn(e); }
   }
 
-  refreshAdminTasksBtn.addEventListener('click', renderAdminTasks);
+  refreshAdminTasksBtn.addEventListener('click', () => {
+    renderAdminTasks();
+    loadEngineers();
+  });
 
   // === Dispatching Form (Admin Create) ===
   dispatchForm.addEventListener('submit', async (e) => {

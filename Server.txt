@@ -75,3 +75,7 @@ CREATE POLICY "所有认证用户可以上报跟台大表" ON clinical_cases FOR
 INSERT INTO storage.buckets (id, name, public) 
 VALUES ('clinical-media-vault', 'clinical-media-vault', true)
 ON CONFLICT DO NOTHING;
+
+-- 5. 开启 dispatch_tasks 表的 Realtime 实时推送广播
+-- ⚠️ 必须执行此条命令，前端才能通过 WebSocket 收到新派单的推送！
+ALTER PUBLICATION supabase_realtime ADD TABLE dispatch_tasks;
