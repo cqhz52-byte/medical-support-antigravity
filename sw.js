@@ -47,3 +47,10 @@ self.addEventListener('fetch', (event) => {
     );
   }
 });
+
+// V3.0 热更新侦听，强行交接控制权
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});

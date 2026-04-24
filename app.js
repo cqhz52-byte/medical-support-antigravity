@@ -121,7 +121,23 @@ document.addEventListener('DOMContentLoaded', () => {
       if(viewId === 'caseFormView' || viewId === 'adminDashboardView') {
         fabNewCase.classList.add('is-hidden');
       } else {
-        fabNewCase.classList.remove('is-hidden');
+        // === UI Event Listeners ===
+        document.getElementById('toRegister').addEventListener('click', () => { loginForm.classList.add('is-hidden'); registerForm.classList.remove('is-hidden'); });
+        document.getElementById('toLogin').addEventListener('click', () => { registerForm.classList.add('is-hidden'); loginForm.classList.remove('is-hidden'); });
+        logoutBtn.addEventListener('click', async () => { await supabase.auth.signOut(); currentUser = null; showView('loginView'); });
+        syncBtn.addEventListener('click', () => alert('离线存挡通道：检测到网络完好，数据已实时投递！'));
+        surgeryOptions.addEventListener('change', (e) => {
+          if(e.target.value) { surgeryType.value = e.target.value; generateDynamicForm(e.target.value); }
+        });
+        
+        // V3.0: 角色高颜切换交互逻辑
+        const roleTabs = document.querySelectorAll('.role-tab');
+        roleTabs.forEach(tab => {
+          tab.querySelector('input').addEventListener('change', (e) => {
+            roleTabs.forEach(t => t.classList.remove('is-active'));
+            tab.classList.add('is-active');
+          });
+        }); fabNewCase.classList.remove('is-hidden');
       }
     }
   }
@@ -390,20 +406,20 @@ document.addEventListener('DOMContentLoaded', () => {
     detectPWAInstallability(); // V2.1 启动安装检测
   }
   
-  // === V2.1 PWA 智能安装引导拦截器 ===
+  // === V3.0 PWA 美学引导与热升级拦截器 ===
   function detectPWAInstallability() {
-    const banner = document.getElementById('pwaInstallBanner');
-    const msg = document.getElementById('pwaInstallMsg');
-    const btn = document.getElementById('pwaInstallBtn');
-    const closeBtn = document.getElementById('pwaCloseBtn');
+    const banner = document.getElementById('pwaGlassOverlay');
+    const msg = document.getElementById('pwaPromptMsg');
+    const title = document.getElementById('pwaPromptTitle');
+    const btn = document.getElementById('pwaActionBtn');
+    const closeBtn = document.getElementById('pwaCancelBtn');
     
     function isStandalone() {
       return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone || window.location.search.includes('source=pwa');
     }
 
     if (isStandalone()) {
-      banner.style.display = 'none';
-      return;
+      banner.classList.add('is-hidden');
     }
 
     let deferredPrompt = null;
@@ -414,45 +430,77 @@ document.addEventListener('DOMContentLoaded', () => {
       deferredPrompt = e;
       hasPromptFired = true;
       if (!isStandalone()) {
-        msg.textContent = '原生加持：点击安装，体验零延迟、不掉线的独立 PWA 应用。';
+        title.textContent = "发现原生形态";
+        msg.textContent = '原生加持：点击安装，体验零延迟、不掉线的独立 PWA 调度系统。';
         btn.style.display = 'block';
-        banner.style.display = 'flex';
+        banner.classList.remove('is-hidden');
       }
     });
 
     window.addEventListener('appinstalled', () => {
       deferredPrompt = null;
-      banner.style.display = 'none';
+      banner.classList.add('is-hidden');
       console.log('PWA 已成功安装到系统！');
     });
 
     btn.addEventListener('click', async () => {
+      // 热更新动作拦截分支
+      if (btn.getAttribute('data-action') === 'update') {
+        const worker = window.pendingUpdateWorker;
+        if (worker) worker.postMessage({ type: 'SKIP_WAITING' });
+        return;
+      }
+      
+      // 普通安装拦截分支
       if (!deferredPrompt) {
         alert("当前环境拦截到系统不支持，请在浏览器菜单中手动添加到桌面。");
         return;
       }
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') banner.style.display = 'none';
+      if (outcome === 'accepted') banner.classList.add('is-hidden');
       deferredPrompt = null;
     });
 
-    closeBtn.addEventListener('click', () => { banner.style.display = 'none'; });
+    closeBtn.addEventListener('click', () => { banner.classList.add('is-hidden'); });
 
+    // PWA 更新降临事件监听器
+    window.addEventListener('pwaUpdateAvailable', (e) => {
+      title.textContent = "✨ 发现新版本";
+      msg.textContent = '指挥中枢已在后台下发了升级包。点击刷新，立即体验全新修补的内容，不会丢失当前数据。';
+      btn.textContent = '立即更新';
+      btn.setAttribute('data-action', 'update');
+      window.pendingUpdateWorker = e.detail.worker;
+      btn.style.display = 'block';
+      banner.classList.remove('is-hidden');
+    });
+
+    // 监听 SKIP_WAITING 执行结束，立马刷新
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) {
+        refreshing = true;
+        window.location.reload();
+      }
+    });
+
+    // 平台防漏兜底
     const isIos = () => { return /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase()); };
     const isAndroid = () => { return /android/.test(window.navigator.userAgent.toLowerCase()); };
     
     setTimeout(() => {
-      if (isStandalone() || hasPromptFired) return;
+      if (isStandalone() || hasPromptFired || btn.getAttribute('data-action') === 'update') return;
       
       if (isIos()) {
-        msg.textContent = '苹果系统要求：请点击底部 ⬆️（分享）-> 找到 [添加到主屏幕] 从而获取全屏沉浸特权。';
+        title.textContent = "苹果系统拦截";
+        msg.textContent = 'Safari 强权：请点击底部 ⬆️（分享）-> 找到 [添加到主屏幕] 从而获取全屏沉浸特权。';
         btn.style.display = 'none';
-        banner.style.display = 'flex';
+        banner.classList.remove('is-hidden');
       } else if (isAndroid()) {
-        msg.textContent = '安卓内核限制：请您点击浏览器右上角 ┇ 菜单 -> 找到 [添加到主屏幕] 赋予长驻运行权。';
+        title.textContent = "安卓内核限制";
+        msg.textContent = '检测到浏览器屏蔽了自动发牌：请点击右上角 ┇ 菜单 -> 找到 [添加到主屏幕] 赋予长驻运行权。';
         btn.style.display = 'none';
-        banner.style.display = 'flex';
+        banner.classList.remove('is-hidden');
       }
     }, 4500); 
   }

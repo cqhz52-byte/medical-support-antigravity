@@ -16,15 +16,20 @@
 <body>
   <div class="app-shell">
     
-    <!-- V2.1 原生安装提示横幅 (跨端适配) -->
-    <div id="pwaInstallBanner" style="display:none; position:fixed; top:0; left:0; right:0; background:rgba(15,118,110,0.95); color:white; padding:12px 16px; z-index:9999; flex-direction:row; align-items:center; justify-content:space-between; box-shadow:0 4px 10px rgba(0,0,0,0.2); backdrop-filter:blur(10px);">
-      <div style="display:flex; flex-direction:column; gap:2px; flex:1;">
-        <strong style="font-size:0.95rem; font-weight:600;">临床跟台调度中枢</strong>
-        <span id="pwaInstallMsg" style="font-size:0.75rem; opacity:0.9;">点击安装原生版本，体验零延迟后台运行。</span>
-      </div>
-      <div style="display:flex; gap:10px; align-items:center;">
-        <button id="pwaInstallBtn" style="background:#fff; color:#0f766e; border:none; padding:6px 12px; border-radius:100px; font-weight:bold; font-size:0.8rem; cursor:pointer;">📥 立即安装</button>
-        <button id="pwaCloseBtn" style="background:transparent; border:none; color:white; font-size:1.2rem; margin-left:4px; opacity:0.8; cursor:pointer;">&times;</button>
+    <!-- V3.0 高级毛玻璃悬浮拦截卡片 (安装与升级提示) -->
+    <div id="pwaGlassOverlay" class="pwa-glass-overlay is-hidden">
+      <div class="pwa-prompt-card">
+        <div class="pwa-header">
+          <div class="pwa-icon-wrapper"><img src="./icon-192.png" alt="系统图标"></div>
+          <div class="pwa-text-content">
+            <h3 id="pwaPromptTitle">发现原生应用</h3>
+            <p id="pwaPromptMsg">点击安装到主屏幕，获取零延迟、防杀后台的全屏沉浸特权。</p>
+          </div>
+        </div>
+        <div class="pwa-action-group">
+          <button id="pwaActionBtn" class="pwa-btn-primary">📥 立即安装</button>
+          <button id="pwaCancelBtn" class="pwa-btn-cancel">暂不需要</button>
+        </div>
       </div>
     </div>
     <header class="topbar">
@@ -43,14 +48,14 @@
             <p>医疗设备工程师专属工作台</p>
           </div>
           
-          <!-- Role Toggle V1.6 -->
-          <div class="role-switch" style="display: flex; gap: 10px; margin-bottom: 20px; background: #f1f5f9; padding: 4px; border-radius: 12px;">
-            <label class="role-tab is-active" style="flex: 1; text-align: center; padding: 10px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: 0.2s;">
-              <input type="radio" name="authRole" value="engineer" checked style="display:none;">
+          <!-- V3.0 高颜值选中状态切换器 -->
+          <div class="role-switch">
+            <label class="role-tab is-active" id="tabEngineer">
+              <input type="radio" name="authRole" value="engineer" checked>
               👨‍🔧 跟台人员
             </label>
-            <label class="role-tab" style="flex: 1; text-align: center; padding: 10px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: 0.2s; color: #64748b;">
-              <input type="radio" name="authRole" value="admin" style="display:none;">
+            <label class="role-tab" id="tabAdmin">
+              <input type="radio" name="authRole" value="admin">
               👨‍💼 派单调度
             </label>
           </div>
@@ -311,11 +316,23 @@
 
   <script src="./app.js"></script>
   <script>
-    // V2.0: 注册 Service Worker 赋予原生生命
+    // V2.0 & V3.0: 注册 Service Worker 赋予原生生命与热更新侦测
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js').then(reg => {
           console.log('ServiceWorker 注册成功并待命');
+          
+          // 监听有没有全新在后台下载好的 service worker (例如我发布了新代码)
+          reg.onupdatefound = () => {
+            const installingWorker = reg.installing;
+            installingWorker.onstatechange = () => {
+              if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                // 派发一个全局事件让 app.js 的漂亮 UI 捕获
+                window.dispatchEvent(new CustomEvent('pwaUpdateAvailable', { detail: { worker: installingWorker } }));
+              }
+            };
+          };
+
         }).catch(err => {
           console.error('ServiceWorker 离线引擎失效:', err);
         });
