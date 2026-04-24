@@ -86,18 +86,25 @@
         <div class="card" style="border-left: 4px solid #10b981;">
           <h3 style="margin-bottom: 12px; display:flex; align-items:center; gap:6px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> 新建工单派发</h3>
           <form id="dispatchForm" novalidate>
-            <label class="field-label" for="dpEngineer">指派给谁 (工程师)</label>
-            <input id="dpEngineer" list="engineerList" class="field" placeholder="例如：李工" required>
+            <label class="field-label" for="dpEngineer">指派给谁 (系统注册工程师)</label>
+            <input id="dpEngineer" list="engineerList" class="field" placeholder="请选择或输入工程师姓名" required>
             <datalist id="engineerList">
-              <option value="李工"></option>
-              <option value="张总"></option>
+              <!-- JS 自动从云端 user_profiles 灌入 -->
             </datalist>
 
-            <label class="field-label" for="dpHospital">派往医院</label>
-            <input id="dpHospital" class="field" placeholder="请检索库内医院名称..." required>
+            <label class="field-label" for="dpHospital">派往医院 (支持全量库检索)</label>
+            <input id="dpHospital" list="hospitalOptions" class="field" placeholder="请检索库内医院名称..." required>
 
-            <label class="field-label" for="dpDoctor">对接神医/主任</label>
-            <input id="dpDoctor" class="field" placeholder="如：王主任">
+            <div style="display:flex; gap: 10px;">
+              <div style="flex:1;">
+                <label class="field-label" for="dpDoctor">对接神医/主任</label>
+                <input id="dpDoctor" class="field" placeholder="如：王主任">
+              </div>
+              <div style="flex:1;">
+                <label class="field-label" for="dpContact">联系方式 (电话/微信)</label>
+                <input id="dpContact" class="field" placeholder="选填，方便沟通">
+              </div>
+            </div>
 
             <div style="display:flex; gap: 10px;">
               <div style="flex:1;">
@@ -111,10 +118,16 @@
                 </select>
               </div>
               <div style="flex:1;">
-                <label class="field-label" for="dpTime">执行计划</label>
-                <input id="dpTime" class="field" placeholder="今日下午" value="尽早执行">
+                <label class="field-label" for="dpTime">执行计划 (精准时间)</label>
+                <input id="dpTime" type="datetime-local" class="field" required>
               </div>
             </div>
+
+            <label class="field-label" for="dpEquipment">备机耗材特殊指示 (携行清单)</label>
+            <textarea id="dpEquipment" class="field" rows="2" placeholder="如：带2根测温针，一台主机，备用导丝..."></textarea>
+
+            <label class="field-label" for="dpRemarks">调度控制台行动备忘指示</label>
+            <textarea id="dpRemarks" class="field" rows="2" placeholder="如有非常规注意事项请留言..."></textarea>
 
             <button type="submit" class="primary-btn btn-block" style="background: #10b981; margin-top:4px;">🚀 确认下达指令云穿透</button>
           </form>

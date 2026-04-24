@@ -24,8 +24,11 @@ CREATE TABLE dispatch_tasks (
   engineer_name VARCHAR(100),                    -- 姓名明文，冗余以供展示
   target_hospital VARCHAR(200) NOT NULL,
   target_doctor VARCHAR(100),
-  scheduled_time VARCHAR(100),
-  procedure_type VARCHAR(100),                   -- IRE, 机器人等
+  contact_info VARCHAR(255),                     -- V1.8: 对接人联系方式或信息
+  scheduled_time VARCHAR(100),                   -- V1.8: 精确手术时间规划
+  procedure_type VARCHAR(100),                   
+  equipment_requirements TEXT,                   -- V1.8: 备机耗材特殊指示
+  remarks TEXT,                                  -- V1.8: 备忘留言
   status VARCHAR(20) DEFAULT 'pending'           -- 'pending'待接单, 'started'进行中表单填充, 'completed'完结
 );
 ALTER TABLE dispatch_tasks ENABLE ROW LEVEL SECURITY;

@@ -57,8 +57,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const dpEngineer = document.getElementById('dpEngineer');
   const dpHospital = document.getElementById('dpHospital');
   const dpDoctor = document.getElementById('dpDoctor');
+  const dpContact = document.getElementById('dpContact');
   const dpSurgery = document.getElementById('dpSurgery');
   const dpTime = document.getElementById('dpTime');
+  const dpEquipment = document.getElementById('dpEquipment');
+  const dpRemarks = document.getElementById('dpRemarks');
+  const engineerList = document.getElementById('engineerList');
   const adminDispatchList = document.getElementById('adminDispatchList');
   const refreshAdminTasksBtn = document.getElementById('refreshAdminTasksBtn');
 
@@ -234,7 +238,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const li = document.createElement('li'); li.className = 'case-item';
         let statusHtml = task.status === 'pending' ? `<span class="status-badge" style="background:#fef08a; color:#854d0e;">待接单</span>` : `<span class="status-badge" style="background:#dcfce7; color:#166534;">运转中</span>`;
         if (task.status === 'completed') statusHtml = `<span class="status-badge" style="background:#f1f5f9; color:#64748b;">已结单归档</span>`;
-        li.innerHTML = `<div style="display:flex; justify-content:space-between; margin-bottom:6px;"><strong style="color:#0f172a; font-size:0.95rem;">${task.target_hospital}</strong>${statusHtml}</div><div style="font-size:0.8rem; color:#475569; display:flex; flex-direction:column; gap:4px;"><span>📌 指派给: ${task.engineer_name} | 🗓️ ${task.scheduled_time}</span><span>🩺 术式: ${task.procedure_type}</span><span>👨‍⚕️ 对接: ${task.target_doctor}</span></div>`;
+        
+        let equipHtml = task.equipment_requirements ? `<div style="margin-top:4px; padding:4px; background:#f8fafc; border-radius:4px; color:#c2410c;">📦 耗材指示: ${task.equipment_requirements}</div>` : '';
+        let rmksHtml = task.remarks ? `<div style="margin-top:4px; padding:4px; background:#f8fafc; border-radius:4px; color:#475569;">📝 备忘留言: ${task.remarks}</div>` : '';
+
+        li.innerHTML = `<div style="display:flex; justify-content:space-between; margin-bottom:6px;"><strong style="color:#0f172a; font-size:0.95rem;">${task.target_hospital}</strong>${statusHtml}</div><div style="font-size:0.8rem; color:#475569; display:flex; flex-direction:column; gap:4px;"><span>📌 指派给: ${task.engineer_name} | 🗓️ ${task.scheduled_time.replace('T', ' ')}</span><span>🩺 术式: ${task.procedure_type}</span><span>👨‍⚕️ 对接: ${task.target_doctor} ${task.contact_info ? `(📞 ${task.contact_info})` : ''}</span>${equipHtml}${rmksHtml}</div>`;
         adminDispatchList.appendChild(li);
       });
     } catch(e) { console.warn(e); }
@@ -250,7 +258,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       data.forEach((task) => {
         const li = document.createElement('li'); li.className = 'case-item'; li.style.borderColor = '#bae6fd';
-        li.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;"><strong style="color:#0369a1; font-size:0.9rem;">${task.target_hospital}</strong><span style="font-size:0.75rem; background:#f0f9ff; color:#0c4a6e; padding:2px 6px; border-radius:4px;">${task.scheduled_time}</span></div><p style="color:#475569;"><strong>类型：</strong>${task.procedure_type}</p><p style="color:#475569;"><strong>医护：</strong>对接 ${task.target_doctor}</p><button class="primary-btn accept-task-btn" data-id="${task.id}" style="width:100%; margin-top:10px; padding: 8px; font-size:0.85rem;">一键穿透接单</button>`;
+        let equipHtml = task.equipment_requirements ? `<div style="font-size:0.8rem; margin:6px 0; padding:6px; background:#fff7ed; border-left:3px solid #f97316; border-radius:4px; color:#c2410c;"><strong>📦 携带物料战备单：</strong><br/>${task.equipment_requirements}</div>` : '';
+        let rmksHtml = task.remarks ? `<div style="font-size:0.8rem; margin:6px 0; padding:6px; background:#f1f5f9; border-left:3px solid #64748b; border-radius:4px; color:#334155;"><strong>📝 调度附言：</strong><br/>${task.remarks}</div>` : '';
+
+        li.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;"><strong style="color:#0369a1; font-size:0.9rem; flex:1;">${task.target_hospital}</strong><span style="font-size:0.75rem; background:#f0f9ff; color:#0c4a6e; padding:2px 6px; border-radius:4px; white-space:nowrap;">⏰ ${task.scheduled_time.replace('T', ' ')}</span></div><p style="color:#475569; font-size:0.85rem;"><strong>类型：</strong>${task.procedure_type}</p><p style="color:#475569; font-size:0.85rem;"><strong>医护：</strong>对接 ${task.target_doctor} ${task.contact_info ? `<a href="tel:${task.contact_info}" style="color:#0ea5e9; text-decoration:none;">📞 拨号: ${task.contact_info}</a>` : ''}</p>${equipHtml}${rmksHtml}<button class="primary-btn accept-task-btn" data-id="${task.id}" style="width:100%; margin-top:10px; padding: 8px; font-size:0.85rem;">接受任务并开启一键穿透表单</button>`;
         pendingTaskList.appendChild(li);
       });
 
@@ -287,8 +298,11 @@ document.addEventListener('DOMContentLoaded', () => {
         engineer_name: dpEngineer.value.trim(),
         target_hospital: dpHospital.value.trim(),
         target_doctor: dpDoctor.value.trim() || '未定医生',
+        contact_info: dpContact.value.trim(),
         procedure_type: dpSurgery.value,
-        scheduled_time: dpTime.value.trim()
+        scheduled_time: dpTime.value,
+        equipment_requirements: dpEquipment.value.trim(),
+        remarks: dpRemarks.value.trim()
       });
       if(error) throw error;
       alert(`🚀 单据已下发并推送到 ${dpEngineer.value} 手机端！`);
@@ -310,8 +324,21 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) {}
   }
 
+  async function loadEngineers() {
+    try {
+      const { data, error } = await supabase.from('user_profiles').select('full_name').eq('role', 'engineer');
+      if (!error && data) {
+        engineerList.innerHTML = '';
+        data.forEach(user => {
+          const opt = document.createElement('option'); opt.value = user.full_name; engineerList.appendChild(opt);
+        });
+      }
+    } catch(e) {}
+  }
+
   function initData() {
     loadHospitals();
+    loadEngineers();
     deviceTypes.forEach(d => { const opt = document.createElement('option'); opt.value = d; opt.textContent = d; deviceModelSelect.appendChild(opt); });
     defaultSurgeries.forEach(s => { const opt = document.createElement('option'); opt.value = s; surgeryOptions.appendChild(opt); });
   }
