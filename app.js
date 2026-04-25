@@ -323,24 +323,30 @@ document.addEventListener('DOMContentLoaded', () => {
         showView('dashboardView');
         renderPendingTasks(name);
         
-        // V4.8: 智能通知状态检测与引导 (解决 iOS 不弹窗问题)
+        // V5.0: 智能通知状态检测与引导 + 诊断信息
         const banner = document.getElementById('notificationBanner');
-        console.log('检查通知状态:', {
-          hasNotification: ('Notification' in window),
-          permission: ('Notification' in window ? Notification.permission : 'N/A'),
-          role: currentRole
-        });
+        const diagUA = document.getElementById('diagUA');
+        const diagPush = document.getElementById('diagPush');
+        const diagPWA = document.getElementById('diagPWA');
 
-        if ('Notification' in window) {
-          if (Notification.permission !== 'granted') {
-            banner.classList.remove('is-hidden');
-            console.log('显示通知引导条');
-          } else {
+        const hasPush = ('Notification' in window && 'PushManager' in window);
+        const perm = ('Notification' in window ? Notification.permission : '不支持');
+        const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+
+        if (diagUA) diagUA.textContent = `UA: ${navigator.userAgent}`;
+        if (diagPush) diagPush.textContent = `推送支持: ${hasPush ? '✅ 是' : '❌ 否'} | 权限: ${perm}`;
+        if (diagPWA) diagPWA.textContent = `运行模式: ${isStandalone ? '✅ PWA (主屏幕)' : '⚠️ 网页 (请存至主屏幕)'}`;
+
+        if (hasPush) {
+          if (Notification.permission === 'granted') {
             banner.classList.add('is-hidden');
             subscribeToWebPush(name);
+          } else {
+            banner.classList.remove('is-hidden'); // 默认显示，引导授权
           }
         } else {
-          console.warn('本浏览器不支持 Notification API');
+          // 不支持推送时，显示警告信息
+          banner.innerHTML = `<div style="font-size:0.75rem; color:#c2410c;">⚠️ 您当前的浏览器或系统版本不支持推送通知。请确保使用 iPhone 且系统版本在 iOS 16.4 以上。</div>`;
         }
         
         // 🚀 实时订阅后台调度指派 (Supabase Realtime)
