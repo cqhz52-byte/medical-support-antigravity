@@ -115,7 +115,10 @@
               <label class="field-label" for="loginPassword">密 码</label>
               <input id="loginPassword" type="password" class="field" placeholder="请输入登录密码" required>
             </div>
-            <button type="submit" class="primary-btn btn-block" style="margin-top:20px; font-size:1.05rem;">确 认 登 录</button>
+            <button type="submit" id="loginSubmitBtn" class="primary-btn btn-block" style="margin-top:20px; font-size:1.05rem; display: flex; align-items: center; justify-content: center; gap: 10px;">
+              <span class="btn-text">确 认 登 录</span>
+              <div class="btn-loader is-hidden"></div>
+            </button>
             <p class="auth-switch">还没开户？ <span id="toRegisterBtn" class="auth-link">快速注册绑定手机</span></p>
           </form>
 
@@ -134,11 +137,17 @@
               <label class="field-label" for="regPassword">初始授权密码 (至少 6 位)</label>
               <input id="regPassword" type="password" class="field" placeholder="设置安全登录口令" required>
             </div>
-            <button type="submit" class="primary-btn btn-block" style="margin-top:20px; font-size:1.05rem;">立即进站</button>
+            <button type="submit" id="regSubmitBtn" class="primary-btn btn-block" style="margin-top:20px; font-size:1.05rem; display: flex; align-items: center; justify-content: center; gap: 10px;">
+              <span class="btn-text">立即进站</span>
+              <div class="btn-loader is-hidden"></div>
+            </button>
             <p class="auth-switch">已有授权档案？ <span id="toLoginBtn" class="auth-link">返回认证</span></p>
           </form>
         </div>
       </section>
+
+      <!-- V6.0: 全局 Toast 提示容器 -->
+      <div id="toastContainer" class="toast-container"></div>
 
       <!-- ADMIN DISPATCH VIEW (V1.6) -->
       <section id="adminDashboardView" class="view">

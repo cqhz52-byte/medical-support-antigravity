@@ -1,4 +1,46 @@
 document.addEventListener('DOMContentLoaded', () => {
+  // === V6.0: 全局 UI 交互辅助函数 ===
+  const toastContainer = document.getElementById('toastContainer');
+  
+  function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    let icon = 'ℹ️';
+    if (type === 'success') icon = '✅';
+    if (type === 'error') icon = '❌';
+    if (type === 'warning') icon = '⚠️';
+    
+    toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
+    toastContainer.appendChild(toast);
+    
+    // 3秒后开始淡出
+    setTimeout(() => {
+      toast.classList.add('fade-out');
+      // 淡出动画结束后移除元素
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
+  }
+
+  function setLoading(btnId, isLoading, text) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    const btnText = btn.querySelector('.btn-text');
+    const btnLoader = btn.querySelector('.btn-loader');
+    
+    btn.disabled = isLoading;
+    if (isLoading) {
+      if (btnText) btnText.classList.add('is-hidden');
+      if (btnLoader) btnLoader.classList.remove('is-hidden');
+    } else {
+      if (btnText) {
+        btnText.classList.remove('is-hidden');
+        if (text) btnText.textContent = text;
+      }
+      if (btnLoader) btnLoader.classList.add('is-hidden');
+    }
+  }
+
   // 解决手机端点击空白处收起键盘问题
   document.addEventListener('touchstart', (e) => {
     const t = e.target.tagName;
@@ -71,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const { outcome } = await deferredPrompt.userChoice;
       deferredPrompt = null;
     } else if (!isiOS) {
-      alert('📥 请点击浏览器菜单选择“安装应用”或“添加到主屏幕”。安装后下次将不再提示。');
+      showToast('📥 请点击浏览器菜单选择“安装应用”或“添加到主屏幕”。安装后下次将不再提示。', 'info');
       localStorage.setItem('pwa_onboarding_dismissed', 'true');
       pwaOverlay.classList.add('is-hidden');
     }
@@ -198,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('toRegister').addEventListener('click', () => { loginForm.classList.add('is-hidden'); registerForm.classList.remove('is-hidden'); });
         document.getElementById('toLogin').addEventListener('click', () => { registerForm.classList.add('is-hidden'); loginForm.classList.remove('is-hidden'); });
         logoutBtn.addEventListener('click', async () => { await supabase.auth.signOut(); currentUser = null; showView('loginView'); });
-        syncBtn.addEventListener('click', () => alert('离线存挡通道：检测到网络完好，数据已实时投递！'));
+        syncBtn.addEventListener('click', () => showToast('离线存挡通道：检测到网络完好，数据已实时投递！', 'success'));
         surgeryOptions.addEventListener('change', (e) => {
           if(e.target.value) { surgeryType.value = e.target.value; generateDynamicForm(e.target.value); }
         });
@@ -254,7 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const selectedTab = document.querySelector('input[name="authRole"]:checked').value;
         if (selectedTab !== currentRole) {
           const roleName = currentRole === 'admin' ? '派单调度' : '跟台人员';
-          alert(`⚠️ 此账号注册身份为【${roleName}】，已自动切换到对应系统。`);
+          showToast(`⚠️ 此账号注册身份为【${roleName}】，已自动切换到对应系统。`, 'warning');
         }
       } else {
         // 数据库没有 profile，尝试从缓存补写（注册时 RLS 可能阻止了写入）
@@ -289,10 +331,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 手机号校验
   function validatePhone(phone) {
-    if (!phone || phone.trim() === '') { alert('⚠️ 请输入手机号码'); return false; }
-    if (!/^\d+$/.test(phone)) { alert('⚠️ 手机号只能包含数字，请勿输入字母或特殊字符'); return false; }
-    if (phone.length !== 11) { alert(`⚠️ 手机号必须为 11 位，当前输入了 ${phone.length} 位`); return false; }
-    if (!/^1[3-9]\d{9}$/.test(phone)) { alert('⚠️ 手机号格式不正确，请输入有效的大陆手机号'); return false; }
+    if (!phone || phone.trim() === '') { showToast('⚠️ 请输入手机号码', 'warning'); return false; }
+    if (!/^\d+$/.test(phone)) { showToast('⚠️ 手机号只能包含数字，请勿输入字母或特殊字符', 'warning'); return false; }
+    if (phone.length !== 11) { showToast(`⚠️ 手机号必须为 11 位，当前输入了 ${phone.length} 位`, 'warning'); return false; }
+    if (!/^1[3-9]\d{9}$/.test(phone)) { showToast('⚠️ 手机号格式不正确，请输入有效的大陆手机号', 'warning'); return false; }
     return true;
   }
 
@@ -303,33 +345,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const pwd = document.getElementById('regPassword').value;
     const role = document.querySelector('input[name="authRole"]:checked').value;
     if (!validatePhone(phone)) return;
-    if (!name) { alert('⚠️ 请输入您的姓名'); return; }
-    if (!pwd || pwd.length < 6) { alert('⚠️ 密码至少需要 6 位'); return; }
+    if (!name) { showToast('⚠️ 请输入您的姓名', 'warning'); return; }
+    if (!pwd || pwd.length < 6) { showToast('⚠️ 密码至少需要 6 位', 'warning'); return; }
 
-    const btn = registerForm.querySelector('button'); btn.textContent = '注册中...';
+    setLoading('regSubmitBtn', true);
     try {
       const { data, error } = await supabase.auth.signUp({ email: getEmailFromPhone(phone), password: pwd });
       if(error) throw error;
 
-      // 写入 user_profiles（注册后可能 auth session 未就绪，需要处理失败情况）
+      // 写入 user_profiles
       if(data.user) {
         const { error: profileError } = await supabase.from('user_profiles').insert({
           id: data.user.id, full_name: name, role: role
         });
         if (profileError) {
-          console.warn('注册时 profile 写入失败（将在首次登录时补写）:', profileError);
-          // 缓存到 localStorage，首次登录时补写
           localStorage.setItem('pendingProfile', JSON.stringify({
             id: data.user.id, full_name: name, role: role
           }));
         }
       }
-      alert('注册成功，请使用新身份登录！');
+      showToast('注册成功，请使用新身份登录！', 'success');
       registerForm.classList.add('is-hidden'); loginForm.classList.remove('is-hidden');
     } catch(err) {
-      alert('注册失败: ' + err.message);
+      showToast('注册失败: ' + err.message, 'error');
     }
-    btn.textContent = '立即进站';
+    setLoading('regSubmitBtn', false, '立即进站');
   });
 
   loginForm.addEventListener('submit', async (e) => {
@@ -337,21 +377,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const phone = document.getElementById('loginPhone').value.trim();
     const pwd = document.getElementById('loginPassword').value;
     if (!validatePhone(phone)) return;
-    if (!pwd) { alert('⚠️ 请输入密码'); return; }
+    if (!pwd) { showToast('⚠️ 请输入密码', 'warning'); return; }
 
     // 登录前先保存用户选择的角色，确保 checkAuthSession 能区分权限
     const selectedRole = document.querySelector('input[name="authRole"]:checked').value;
     localStorage.setItem('userRole', selectedRole);
 
-    const btn = loginForm.querySelector('button'); btn.textContent = '认证中...';
+    setLoading('loginSubmitBtn', true);
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email: getEmailFromPhone(phone), password: pwd });
       if(error) throw error;
       checkAuthSession();
     } catch(err) {
-       alert('登录失败: 请检查手机号或密码。如无账号请先注册。（错误:'+err.message+')');
+       showToast('登录失败: 请检查手机号或密码。如无账号请先注册。（错误:'+err.message+')', 'error');
     }
-    btn.textContent = '确 认 登 录';
+    setLoading('loginSubmitBtn', false, '确 认 登 录');
   });
 
   logoutBtn.addEventListener('click', async () => {
@@ -503,7 +543,7 @@ document.addEventListener('DOMContentLoaded', () => {
               icon: './icon-192.png'
             });
           } else {
-            alert(`🚨 收到新的派单：${newTask.target_hospital} - ${newTask.target_doctor}`);
+            showToast(`🚨 收到新的派单：${newTask.target_hospital} - ${newTask.target_doctor}`, 'info');
           }
           renderPendingTasks(engineerName); // 刷新任务列表
         } else if (currentRole === 'admin') {
@@ -560,7 +600,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           if (data && data.length > 0) {
             const msgs = data.map(t => `📍 ${t.target_hospital} - ${t.target_doctor || '待定'} (${t.procedure_type})`).join('\n');
-            alert(`🚨 您有 ${data.length} 条新派单！\n\n${msgs}`);
+            showToast(`🚨 您有 ${data.length} 条新派单！\n\n${msgs}`, 'info');
           }
         } catch(e) { console.warn('Background task check failed:', e); }
       }
@@ -659,7 +699,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // === Dispatching Form (Admin Create) ===
   dispatchForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!dpEngineer.value || !dpHospital.value) { alert("核心指令不完整！"); return; }
+    if (!dpEngineer.value || !dpHospital.value) { showToast("核心指令不完整！", "warning"); return; }
     const btn = dispatchForm.querySelector('button'); btn.textContent = '云穿透中...';
     try {
       const { error } = await supabase.from('dispatch_tasks').insert({
@@ -674,10 +714,10 @@ document.addEventListener('DOMContentLoaded', () => {
         remarks: dpRemarks.value.trim()
       });
       if(error) throw error;
-      alert(`🚀 单据已下发并推送到 ${dpEngineer.value} 手机端！`);
+      showToast(`🚀 单据已下发并推送到 ${dpEngineer.value} 手机端！`, 'success');
       dispatchForm.reset();
       renderAdminTasks();
-    } catch(err){ alert('派发异常:' + err.message); }
+    } catch(err){ showToast('派发异常:' + err.message, 'error'); }
     btn.textContent = '🚀 确认下达指令云穿透';
   });
 
@@ -775,7 +815,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // 普通安装拦截分支
       if (!deferredPrompt) {
-        alert("当前环境拦截到系统不支持，请在浏览器菜单中手动添加到桌面。");
+        showToast("当前环境拦截到系统不支持，请在浏览器菜单中手动添加到桌面。", "warning");
         return;
       }
       deferredPrompt.prompt();
@@ -882,7 +922,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!surgery) return;
     const labels = Array.from(dynamicParameters.querySelectorAll('.param-label-text')).map(el => { return { label: el.textContent.trim() || '未命名参数' }; });
     localStorage.setItem('TPL_' + surgery, JSON.stringify(labels));
-    alert(`✅ 已固化！`);
+    showToast(`✅ 已固化！`, 'success');
   });
 
   function updateStepper() {
@@ -957,7 +997,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // SUBMIT CLINICAL CASE DIRECT TO SUPABASE
   document.getElementById('caseForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    if(!currentUser) { alert('登录身份丢失，无法入库'); return; }
+    if(!currentUser) { showToast('登录身份丢失，无法入库', 'error'); return; }
     const btn = document.getElementById('submitBtn');
     btn.textContent = '云端数据库收录封板中...';
     btn.disabled = true;
@@ -1003,7 +1043,7 @@ document.addEventListener('DOMContentLoaded', () => {
         await supabase.from('dispatch_tasks').update({ status: 'completed' }).eq('id', taskId);
       }
       
-      alert('🔒 云端确认！所有全链路表单、参数JSON、图像均已落存 Supabase，跟台圆满结束。');
+      showToast('🔒 云端确认！所有全链路表单、参数JSON、图像均已落存 Supabase，跟台圆满结束。', 'success');
       
       // Cleanup UI
       e.target.reset(); mediaPreview.textContent = '暂无文件'; paperParamPreview.textContent = '相机高压录原纸存档';
@@ -1012,7 +1052,7 @@ document.addEventListener('DOMContentLoaded', () => {
       let td = parseInt(document.getElementById('statToday').textContent, 10) || 0;
       document.getElementById('statToday').textContent = td + 1;
     } catch(err) {
-      alert('落库受阻，原因:' + err.message);
+      showToast('落库受阻，原因:' + err.message, 'error');
     }
     btn.disabled = false;
     btn.textContent = '归卷终态全量落库';
@@ -1026,12 +1066,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const name = localStorage.getItem('cachedName') || (currentUser ? currentUser.email.split('@')[0] : '工程师');
         await subscribeToWebPush(name);
         document.getElementById('notificationBanner').classList.add('is-hidden');
-        alert('✅ 实时提醒已开启，请保持 App 在后台运行。');
+        showToast('✅ 实时提醒已开启，请保持 App 在后台运行。', 'success');
       } else {
-        alert('❌ 权限未授予，您将无法收到离线推送。请在系统设置中允许本 App 的通知。');
+        showToast('❌ 权限未授予，您将无法收到离线推送。请在系统设置中允许本 App 的通知。', 'error');
       }
     } catch (e) {
-      alert('无法请求通知权限：' + e.message);
+      showToast('无法请求通知权限：' + e.message, 'error');
     }
   });
 });
