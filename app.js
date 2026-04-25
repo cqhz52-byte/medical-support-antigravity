@@ -263,6 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('adminWelcomeText').textContent = `最高指控官：${name}`;
         showView('adminDashboardView');
         renderAdminTasks();
+        loadEngineers(); // 进入管理员页面时立刻加载工程师列表
         
         // 管理员也订阅实时推送，接收工程师提交的更新
         subscribeToRealtimePush(name);
