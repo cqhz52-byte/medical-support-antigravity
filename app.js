@@ -15,6 +15,57 @@ document.addEventListener('DOMContentLoaded', () => {
   // Web Push VAPID Public Key
   const VAPID_PUBLIC_KEY = 'BGdMnU3sHJwo5OTJ_sSVwRsTrJlbACvcRiURp0Tx4Z9oAdVAX4HG5qgIMbwyGxDOfRNDLuI4fMHZL8SIgMOMhl8';
 
+  // === V5.5: PWA 引导分发系统 ===
+  const isWeChat = /MicroMessenger/i.test(navigator.userAgent);
+  const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+  const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  const wechatOverlay = document.getElementById('wechatGuideOverlay');
+  const pwaOverlay = document.getElementById('pwaGlassOverlay');
+  const iosHint = document.getElementById('iosInstallHint');
+
+  // 1. 微信环境拦截
+  if (isWeChat && !isStandalone) {
+    wechatOverlay.classList.remove('is-hidden');
+  } 
+  // 2. 浏览器环境安装引导 (非 PWA 模式打开时显示)
+  else if (!isStandalone) {
+    pwaOverlay.classList.remove('is-hidden');
+    if (isiOS) {
+      iosHint.classList.remove('is-hidden');
+      document.getElementById('pwaActionBtn').classList.add('is-hidden'); // iOS 只能手动点分享
+    }
+  }
+
+  // 按钮交互
+  document.getElementById('pwaCancelBtn').addEventListener('click', () => {
+    pwaOverlay.classList.add('is-hidden');
+  });
+
+  // Android 安装触发 (由 PWA 提供原生事件)
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    // 只有在安卓且非 PWA 模式下显示安装按钮
+    if (!isiOS && !isStandalone) {
+      document.getElementById('pwaActionBtn').classList.remove('is-hidden');
+    }
+  });
+
+  document.getElementById('pwaActionBtn').addEventListener('click', async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        pwaOverlay.classList.add('is-hidden');
+      }
+      deferredPrompt = null;
+    } else {
+      alert('⚠️ 请点击浏览器菜单中的“安装”或“添加到主屏幕”。');
+    }
+  });
+
   // === Layout Elements ===
   const viewLogin = document.getElementById('loginView');
   const viewDashboard = document.getElementById('dashboardView');

@@ -515,73 +515,58 @@ body {
 .pwa-btn-primary { background: linear-gradient(135deg, #0f766e, #115e59); color: white; box-shadow: 0 8px 16px rgba(15,118,110,0.3);}
 .pwa-btn-cancel { background: #f1f5f9; color: #64748b; }
 
-/* V3.5 Role Tabs (iOS Slide Style) */
-.role-switch {
-  display: flex; position: relative; background: #e2e8f0; padding: 4px; border-radius: 12px; margin-bottom: 24px;
+/* V5.5: 微信引导页样式 */
+.wechat-guide-overlay {
+  position: fixed; inset: 0; z-index: 20000;
+  background: rgba(15, 23, 42, 0.95);
+  display: flex; align-items: center; justify-content: center;
+  padding: 30px; color: white; text-align: center;
 }
-.role-indicator {
-  position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px);
-  background: #ffffff; border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(15, 118, 110, 0.15), 0 1px 2px rgba(0,0,0,0.05);
-  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-  z-index: 1;
+.wechat-guide-content { width: 100%; max-width: 320px; }
+.guide-step {
+  display: flex; align-items: center; gap: 15px;
+  background: rgba(255,255,255,0.1); padding: 15px;
+  border-radius: 12px; margin-bottom: 12px; text-align: left;
+  font-size: 0.9rem;
 }
-.role-switch.isAdmin .role-indicator {
-  transform: translateX(100%);
+.step-num {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--primary); color: white;
+  display: grid; place-items: center; font-weight: bold; flex-shrink: 0;
 }
-.role-tab {
-  flex: 1; text-align: center; padding: 12px 10px; border-radius: 10px;
-  font-size: 0.95rem; font-weight: 600; cursor: pointer;
-  transition: color 0.3s, transform 0.1s ease;
-  color: #64748b; background: transparent; z-index: 2; position: relative;
-  -webkit-tap-highlight-color: transparent;
+.wechat-arrow {
+  position: absolute; top: 20px; right: 30px;
+  font-size: 3rem; animation: bounce 2s infinite;
 }
-.role-tab:active {
-  transform: scale(0.96);
-}
-.role-tab input { display: none; }
-.role-tab.is-active {
-  color: #0f766e;
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
 }
 
-/* V3.5 Admin Dashboard UI */
-.admin-header {
-  background: linear-gradient(135deg, #0f172a, #1e293b);
-  color: white; border-radius: 16px; padding: 24px 20px;
-  margin-bottom: -20px; box-shadow: var(--shadow);
-  position: relative; overflow: hidden;
+/* V5.5: 全屏安装 Onboarding 卡片 */
+.pwa-onboarding-card {
+  background: #ffffff; width: 100%; max-width: 420px;
+  border-radius: 28px; padding: 32px 24px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+  text-align: center;
 }
-.admin-header::after {
-  content: ''; position: absolute; right: -20px; top: -30px;
-  width: 150px; height: 150px; background: radial-gradient(circle, rgba(20,184,166,0.2) 0%, transparent 70%);
+.onboarding-icon {
+  width: 80px; height: 80px; border-radius: 18px;
+  margin-bottom: 16px; box-shadow: 0 8px 20px rgba(15,118,110,0.2);
 }
-.admin-header h2 { margin: 0 0 4px; font-size: 1.4rem; z-index: 1; position: relative; }
-.admin-header p { margin: 0; font-size: 0.85rem; color: #94a3b8; z-index: 1; position: relative; }
+.onboarding-header h2 { margin: 0; font-size: 1.4rem; color: #0f172a; }
+.onboarding-header p { margin: 4px 0 0; font-size: 0.85rem; color: #64748b; }
 
-.admin-form-card {
-  background: #ffffff; border-radius: 20px; padding: 24px 20px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.08); margin: 0 10px 20px 10px;
-  position: relative; z-index: 2; border: 1px solid rgba(255,255,255,0.8);
+.onboarding-body { margin: 30px 0; text-align: left; }
+.feature-item {
+  display: flex; gap: 16px; align-items: center; margin-bottom: 20px;
 }
-.glass-field {
-  background: #f8fafc; border: 1px solid #e2e8f0;
-  border-radius: 12px; padding: 12px 16px; font-size: 0.95rem; width: 100%; transition: 0.3s;
+.feature-item span {
+  font-size: 1.5rem; width: 44px; height: 44px;
+  background: #f0fdfa; border-radius: 12px;
+  display: grid; place-items: center;
 }
-.glass-field:focus {
-  background: #ffffff; border-color: #0f766e; box-shadow: 0 0 0 4px rgba(15,118,110,0.1);
-  outline: none;
-}
-.two-col { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 14px;}
-.two-col > div { flex: 1; min-width: 120px; }
-.dispatch-btn {
-  background: linear-gradient(135deg, #10b981, #059669); color: white;
-  border: none; border-radius: 14px; padding: 14px; width: 100%;
-  font-size: 1.05rem; font-weight: bold; margin-top: 10px;
-  box-shadow: 0 8px 16px rgba(16,185,129,0.25); transition: 0.2s;
-}
-.dispatch-btn:active { transform: scale(0.97); }
+.feature-item strong { display: block; font-size: 0.95rem; color: #1e293b; }
+.feature-item small { color: #64748b; font-size: 0.8rem; }
 
-.list-header {
-  display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
-}
 /* end styles */
