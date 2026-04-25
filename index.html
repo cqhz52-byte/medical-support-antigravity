@@ -74,7 +74,7 @@
     <header class="topbar">
       <div style="display:flex; align-items:center; gap:8px;">
         <img src="./logo-curaway.svg" alt="Curaway" style="height:24px;">
-        <h1>临床跟台系统 <span id="appVersion" style="font-size:0.55rem; color:#94a3b8; font-weight:400; vertical-align:middle;">v6.6</span></h1>
+        <h1>临床跟台系统 <span id="appVersion" style="font-size:0.55rem; color:#94a3b8; font-weight:400; vertical-align:middle;">v6.7</span></h1>
       </div>
       <button id="syncBtn" class="ghost-btn" type="button">同步离线数据</button>
       <button id="logoutBtn" class="ghost-btn is-hidden" type="button" style="color:#c2410c; border-color:#fed7aa; margin-left:8px;">退出登录</button>
@@ -368,6 +368,29 @@
             <div class="form-step" data-step="4">
               <label class="field-label" for="complications">临床并发症或隐患点警告</label>
               <textarea id="complications" class="field" rows="3" placeholder="正常无异留空即可保护通道干净度"></textarea>
+
+              <div class="card-inline" style="margin-bottom: 14px; border-color: #fca5a5; background: #fffafb;">
+                <div class="card-title-row" style="margin-bottom: 8px;">
+                  <span style="font-size: 0.85rem; font-weight: 600; color: #b91c1c;">🚨 临床问题/质量反馈 (选填)</span>
+                  <label for="feedbackMediaInput" class="mini-btn" style="cursor:pointer; display: flex; align-items: center; gap: 4px; border-color: #fca5a5; color: #b91c1c;">
+                    📸 问题取证
+                  </label>
+                  <input id="feedbackMediaInput" type="file" accept="image/*" capture="environment" style="display:none;" multiple>
+                </div>
+                <div style="display: flex; gap: 12px; margin-bottom: 10px; flex-wrap: wrap;">
+                  <label style="font-size: 0.8rem; color: #475569; display: flex; align-items: center; gap: 4px;">
+                    <input type="checkbox" name="feedbackType" value="质量问题"> 质量
+                  </label>
+                  <label style="font-size: 0.8rem; color: #475569; display: flex; align-items: center; gap: 4px;">
+                    <input type="checkbox" name="feedbackType" value="产品问题"> 产品
+                  </label>
+                  <label style="font-size: 0.8rem; color: #475569; display: flex; align-items: center; gap: 4px;">
+                    <input type="checkbox" name="feedbackType" value="使用问题"> 使用
+                  </label>
+                </div>
+                <textarea id="feedbackDetail" class="field" rows="2" placeholder="详细描述异常或建议..." style="border-color: #fecaca;"></textarea>
+                <div id="feedbackMediaPreview" class="media-preview" style="border-color: #fecaca; background: rgba(255,255,255,0.6); margin-top: 8px;">上传现场异常情况照片</div>
+              </div>
 
               <label class="field-label" for="mediaInput">环境/合影相册压缩入库上传器</label>
               <input id="mediaInput" type="file" class="field" accept="image/*" capture="environment" multiple>

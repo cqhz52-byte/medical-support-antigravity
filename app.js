@@ -169,6 +169,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const consumableList = document.getElementById('consumableList');
   const mediaInput = document.getElementById('mediaInput');
   const mediaPreview = document.getElementById('mediaPreview');
+  const feedbackMediaInput = document.getElementById('feedbackMediaInput');
+  const feedbackMediaPreview = document.getElementById('feedbackMediaPreview');
+  const feedbackDetail = document.getElementById('feedbackDetail');
   
   // === Task UI ===
   const pendingTaskList = document.getElementById('pendingTaskList');
@@ -193,6 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentRole = 'engineer';
   let capturedPaperImages = [];
   let capturedMediaImages = [];
+  let capturedFeedbackImages = [];
 
   // Config
   const deviceTypes = [
@@ -1129,6 +1133,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  safeBind(feedbackMediaInput, 'change', async (e) => {
+    const files = Array.from(e.target.files);
+    feedbackMediaPreview.innerHTML = '<div style="font-size:0.8rem; color:#ef4444;">🚨 质量现场取证压片中...</div>';
+    const compressed = await Promise.all(files.map(f => compressImage(f)));
+    capturedFeedbackImages = [...capturedFeedbackImages, ...compressed];
+    feedbackMediaPreview.innerHTML = '';
+    capturedFeedbackImages.forEach((img, idx) => {
+      const el = document.createElement('div');
+      el.className = 'media-preview-item';
+      el.innerHTML = `<img src="${img}"><span class="remove-btn" data-idx="${idx}">×</span>`;
+      el.querySelector('.remove-btn').onclick = () => {
+        capturedFeedbackImages.splice(idx, 1);
+        el.remove();
+      };
+      feedbackMediaPreview.appendChild(el);
+    });
+  });
+
   mediaInput.addEventListener('change', async (e) => {
     if (e.target.files.length === 0) return;
     mediaPreview.textContent = '压片池处理中...';
@@ -1164,6 +1186,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 3. Payload
     const taskId = e.target.getAttribute('data-bound-task') || null;
+    // 3. Pack Feedback
+    const feedbackTypes = Array.from(document.querySelectorAll('input[name="feedbackType"]:checked')).map(el => el.value);
+    const feedbackText = document.getElementById('feedbackDetail').value.trim();
+
     const payload = {
       engineer_id: currentUser.id,
       engineer_name: localStorage.getItem('cachedName') || '工程师',
@@ -1178,7 +1204,12 @@ document.addEventListener('DOMContentLoaded', () => {
       consumable_qr_codes: qrUdis,
       is_abnormal: isAbnormal.checked,
       outcome_summary: outcome.value.trim(),
-      complications: complications.value.trim()
+      complications: complications.value.trim(),
+      clinical_feedback: {
+        types: feedbackTypes,
+        detail: feedbackText,
+        images: capturedFeedbackImages
+      }
     };
 
     try {
@@ -1193,8 +1224,12 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('🔒 云端确认！所有全链路表单、参数JSON、图像均已落存 Supabase，跟台圆满结束。', 'success');
       
       // Cleanup UI
-      e.target.reset(); mediaPreview.textContent = '暂无文件'; paperParamPreview.textContent = '相机高压录原纸存档';
-      dynamicParameters.innerHTML = ''; consumableList.innerHTML = ''; capturedPaperImages=[]; capturedMediaImages=[];
+      e.target.reset(); 
+      mediaPreview.textContent = '系统监听环境快门...'; 
+      paperParamPreview.textContent = '支持拍摄原纸单...';
+      feedbackMediaPreview.textContent = '上传现场异常情况照片';
+      dynamicParameters.innerHTML = ''; consumableList.innerHTML = ''; 
+      capturedPaperImages=[]; capturedMediaImages=[]; capturedFeedbackImages=[];
       showView('dashboardView');
       let td = parseInt(document.getElementById('statToday').textContent, 10) || 0;
       document.getElementById('statToday').textContent = td + 1;
