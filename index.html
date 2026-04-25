@@ -326,17 +326,32 @@
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js').then(reg => {
           console.log('ServiceWorker 注册成功并待命');
-          
-          // 监听有没有全新在后台下载好的 service worker (例如我发布了新代码)
+
+          // ★ 每次打开 App 立刻强制检查 SW 更新（解决安装到桌面后不更新的问题）
+          reg.update();
+
+          // ★ 每 30 分钟自动检查一次更新
+          setInterval(() => reg.update(), 30 * 60 * 1000);
+
+          // ★ 从后台切回来时也检查更新
+          document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') reg.update();
+          });
+
+          // 监听有没有全新在后台下载好的 service worker
           reg.onupdatefound = () => {
             const installingWorker = reg.installing;
             installingWorker.onstatechange = () => {
               if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                // 派发一个全局事件让 app.js 的漂亮 UI 捕获
                 window.dispatchEvent(new CustomEvent('pwaUpdateAvailable', { detail: { worker: installingWorker } }));
               }
             };
           };
+
+          // 如果已有等待中的 SW（上次没点更新），也弹出提示
+          if (reg.waiting) {
+            window.dispatchEvent(new CustomEvent('pwaUpdateAvailable', { detail: { worker: reg.waiting } }));
+          }
 
         }).catch(err => {
           console.error('ServiceWorker 离线引擎失效:', err);
