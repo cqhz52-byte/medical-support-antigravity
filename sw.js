@@ -1,4 +1,4 @@
-const CACHE_NAME = 'clinical-support-v5.0';
+const CACHE_NAME = 'clinical-support-v5.1';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -76,10 +76,14 @@ self.addEventListener('push', (event) => {
     body: data.body || '您收到一条新的手术调度指令',
     icon: './icon-192.png',
     badge: './icon-192.png',
-    vibrate: [200, 100, 200, 100, 200],
-    tag: 'dispatch-' + Date.now(),
+    vibrate: [200, 100, 200, 100, 200, 100, 200],
+    tag: 'dispatch-alert',
     renotify: true,
     requireInteraction: true,
+    actions: [
+      { action: 'view', title: '👁️ 查看详情' },
+      { action: 'confirm', title: '✅ 我已收到' }
+    ],
     data: {
       url: self.registration.scope
     }
