@@ -226,6 +226,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const pwd = document.getElementById('loginPassword').value;
     if(!phone || !pwd) return;
 
+    // 登录前先保存用户选择的角色，确保 checkAuthSession 能区分权限
+    const selectedRole = document.querySelector('input[name="authRole"]:checked').value;
+    localStorage.setItem('userRole', selectedRole);
+
     const btn = loginForm.querySelector('button'); btn.textContent = '认证中...';
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email: getEmailFromPhone(phone), password: pwd });
