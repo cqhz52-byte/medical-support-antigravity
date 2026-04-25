@@ -718,10 +718,17 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem('pending_cases', JSON.stringify(failedCases));
     document.getElementById('statPending').textContent = failedCases.length;
     
+    // 下行同步：刷新任务与统计
+    const name = localStorage.getItem('cachedName');
+    if (name) {
+      await renderPendingTasks(name);
+      await updateUserStats(name);
+    }
+
     if (successCount > 0) {
-      showToast(`✅ 成功同步 ${successCount} 条数据至云端！`, 'success');
-      const name = localStorage.getItem('cachedName');
-      if (name) updateUserStats(name); // 刷新统计
+      showToast(`✅ 成功同步 ${successCount} 条本地数据，并已刷新云端任务。`, 'success');
+    } else {
+      showToast(`🔄 云端数据已同步至最新。`, 'success');
     }
     
     if (failedCases.length > 0) {
