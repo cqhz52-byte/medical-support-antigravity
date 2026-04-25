@@ -771,18 +771,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function renderPendingTasks(engineerName, isSilent = false) {
     try {
-      const { data, error } = await supabase.from('dispatch_tasks').select('*').eq('engineer_name', engineerName).eq('status', 'pending');
+      const { data, error } = await supabase.from('dispatch_tasks')
+        .select('*')
+        .eq('engineer_name', engineerName)
+        .eq('status', 'pending')
+        .order('scheduled_time', { ascending: true });
+
       if(error) throw error;
       pendingTaskList.innerHTML = '';
       if (!data || data.length === 0) {
-        pendingTaskList.innerHTML += `<p style="font-size:0.8rem; color:#888; text-align:center;">云端暂无待处理调度任务</p>`; return;
+        pendingTaskList.innerHTML = `<p style="font-size:0.8rem; color:#888; text-align:center;">云端暂无待处理调度任务</p>`; return;
       }
-      data.forEach((task) => {
+      data.forEach((task, index) => {
         const li = document.createElement('li'); li.className = 'case-item'; li.style.borderColor = '#bae6fd';
         let equipHtml = task.equipment_requirements ? `<div style="font-size:0.8rem; margin:6px 0; padding:6px; background:#fff7ed; border-left:3px solid #f97316; border-radius:4px; color:#c2410c;"><strong>📦 携带物料战备单：</strong><br/>${task.equipment_requirements}</div>` : '';
         let rmksHtml = task.remarks ? `<div style="font-size:0.8rem; margin:6px 0; padding:6px; background:#f1f5f9; border-left:3px solid #64748b; border-radius:4px; color:#334155;"><strong>📝 调度附言：</strong><br/>${task.remarks}</div>` : '';
 
-        li.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;"><strong style="color:#0369a1; font-size:0.9rem; flex:1;">${task.target_hospital}</strong><span style="font-size:0.75rem; background:#f0f9ff; color:#0c4a6e; padding:2px 6px; border-radius:4px; white-space:nowrap;">⏰ ${task.scheduled_time.replace('T', ' ')}</span></div><p style="color:#475569; font-size:0.85rem;"><strong>类型：</strong>${task.procedure_type}</p><p style="color:#475569; font-size:0.85rem;"><strong>医护：</strong>对接 ${task.target_doctor} ${task.contact_info ? `<a href="tel:${task.contact_info}" style="color:#0ea5e9; text-decoration:none;">📞 拨号: ${task.contact_info}</a>` : ''}</p>${equipHtml}${rmksHtml}<button class="primary-btn accept-task-btn" data-id="${task.id}" style="width:100%; margin-top:10px; padding: 8px; font-size:0.85rem;">接受任务并开启一键穿透表单</button>`;
+        li.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <span style="font-size:0.7rem; background:#0ea5e9; color:white; padding:2px 8px; border-radius:20px; font-weight:bold;">任务 #${index + 1}</span>
+            <span style="font-size:0.8rem; font-weight:bold; color:#0369a1; background:#f0f9ff; padding:2px 8px; border-radius:6px; border:1px solid #bae6fd;">⏰ 开始时间: ${task.scheduled_time.replace('T', ' ').slice(0, 16)}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+            <strong style="color:#0f172a; font-size:1rem; flex:1;">${task.target_hospital}</strong>
+          </div>
+          <p style="color:#475569; font-size:0.85rem;"><strong>术式类型：</strong>${task.procedure_type}</p>
+          <p style="color:#475569; font-size:0.85rem;"><strong>对接医护：</strong>${task.target_doctor} ${task.contact_info ? `<a href="tel:${task.contact_info}" style="color:#0ea5e9; text-decoration:none; margin-left:8px;">📞 拨号</a>` : ''}</p>
+          ${equipHtml}${rmksHtml}
+          <button class="primary-btn accept-task-btn" data-id="${task.id}" style="width:100%; margin-top:12px; padding: 10px; font-size:0.9rem; font-weight:bold; background: linear-gradient(135deg, #0ea5e9, #0284c7);">接受任务并开启一键穿透表单</button>
+        `;
         pendingTaskList.appendChild(li);
       });
 
@@ -802,6 +819,19 @@ document.addEventListener('DOMContentLoaded', () => {
           document.getElementById('caseForm').setAttribute('data-bound-task', taskId);
           showView('caseFormView');
         });
+      });
+
+      // 🚀 临近任务自动化扫描 (1小时内开始则强提醒)
+      const now = new Date();
+      data.forEach(task => {
+        const startTime = new Date(task.scheduled_time);
+        const diffMs = startTime - now;
+        const diffMins = Math.floor(diffMs / 60000);
+
+        if (diffMins > 0 && diffMins <= 60) {
+          showToast(`⏰ 临近提醒：您在【${task.target_hospital}】的任务将于 ${diffMins} 分钟后开始！`, 'warning');
+          if ('vibrate' in navigator) navigator.vibrate([300, 100, 300]);
+        }
       });
     } catch(e) { console.warn(e); }
   }
