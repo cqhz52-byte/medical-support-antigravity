@@ -313,12 +313,45 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // 手机从黑屏/后台切回前台瞬间，强行激活一次拉取！
-  document.addEventListener('visibilitychange', () => {
+  // === iOS 后台唤醒增强：记录切后台时间，回来后检查新派单 ===
+  let lastBackgroundTime = null;
+
+  document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState === 'hidden') {
+      // 记录切后台的精确时间
+      lastBackgroundTime = new Date().toISOString();
+    }
+
     if (document.visibilityState === 'visible') {
-      console.log('App Foregrounded - Forcing task sync...');
+      console.log('App Foregrounded - Reconnecting & syncing...');
       const name = localStorage.getItem('cachedName');
+
+      // 1) 重建 Realtime WebSocket（iOS 后台会杀掉连接）
+      if (name) {
+        subscribeToRealtimePush(name);
+      }
+
+      // 2) 刷新任务列表
       if (currentRole === 'admin') renderAdminTasks();
       else if (currentRole === 'engineer' && name) renderPendingTasks(name);
+
+      // 3) 检查后台期间是否有新派单到达（仅工程师）
+      if (currentRole === 'engineer' && name && lastBackgroundTime) {
+        try {
+          const { data } = await supabase
+            .from('dispatch_tasks')
+            .select('target_hospital, target_doctor, procedure_type')
+            .eq('engineer_name', name)
+            .gt('created_at', lastBackgroundTime)
+            .order('created_at', { ascending: false });
+
+          if (data && data.length > 0) {
+            const msgs = data.map(t => `📍 ${t.target_hospital} - ${t.target_doctor || '待定'} (${t.procedure_type})`).join('\n');
+            alert(`🚨 您有 ${data.length} 条新派单！\n\n${msgs}`);
+          }
+        } catch(e) { console.warn('Background task check failed:', e); }
+      }
+      lastBackgroundTime = null;
     }
   });
 
