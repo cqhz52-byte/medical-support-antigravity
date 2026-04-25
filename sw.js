@@ -1,4 +1,4 @@
-const CACHE_NAME = 'clinical-support-v4.1';
+const CACHE_NAME = 'clinical-support-v4.2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
