@@ -8,7 +8,8 @@ const ASSETS_TO_CACHE = [
   './icon.svg',
   './icon-192.png',
   './icon-512.png',
-  './hospitals.json'
+  './hospitals.json',
+  './logo-curaway.svg'
 ];
 
 self.addEventListener('install', (event) => {
