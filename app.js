@@ -549,11 +549,14 @@ document.addEventListener('DOMContentLoaded', () => {
           if ('Notification' in window && Notification.permission === 'granted') {
             new Notification('🚨 新的手术跟台派单', {
               body: `医院: ${newTask.target_hospital}\n医生: ${newTask.target_doctor || '未指定'}\n设备: ${newTask.procedure_type}`,
-              icon: './icon-192.png'
+              icon: './icon-192.png',
+              requireInteraction: true,
+              vibrate: [500, 110, 500, 110, 450, 110, 200, 110, 170, 40, 450, 110, 200, 110, 170, 40]
             });
           } else {
             showToast(`🚨 收到新的派单：${newTask.target_hospital} - ${newTask.target_doctor}`, 'info');
           }
+          if ('vibrate' in navigator) navigator.vibrate([500, 200, 500, 200, 500]);
           renderPendingTasks(engineerName); // 刷新任务列表
         } else if (currentRole === 'admin') {
           renderAdminTasks(); // 管理员自己也刷新
@@ -772,7 +775,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if(error) throw error;
       pendingTaskList.innerHTML = '';
       if (!data || data.length === 0) {
-        pendingTaskList.innerHTML = `<p style="font-size:0.8rem; color:#888; text-align:center;">云端暂无待处理调度任务</p>`; return;
+        pendingTaskList.innerHTML += `<p style="font-size:0.8rem; color:#888; text-align:center;">云端暂无待处理调度任务</p>`; return;
       }
       data.forEach((task) => {
         const li = document.createElement('li'); li.className = 'case-item'; li.style.borderColor = '#bae6fd';
