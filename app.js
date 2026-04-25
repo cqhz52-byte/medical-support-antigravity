@@ -453,6 +453,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // 🚀 实时订阅后台调度指派 (Supabase Realtime)
         subscribeToRealtimePush(name);
+
+        // 📊 加载个人工作统计数据
+        updateUserStats(name);
       }
     } else {
       showView('loginView');
@@ -632,6 +635,42 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   }).subscribe();
+
+
+  // --- Database Stats Loader ---
+  async function updateUserStats(userName) {
+    if (!userName || currentRole !== 'engineer') return;
+    
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+      // 1. 今日任务统计
+      const { count: countToday, error: errToday } = await supabase
+        .from('clinical_cases')
+        .select('*', { count: 'exact', head: true })
+        .eq('engineer_name', userName)
+        .gte('created_at', today.toISOString());
+
+      if (!errToday) document.getElementById('statToday').textContent = countToday;
+
+      // 2. 本月场次统计
+      const { count: countMonth, error: errMonth } = await supabase
+        .from('clinical_cases')
+        .select('*', { count: 'exact', head: true })
+        .eq('engineer_name', userName)
+        .gte('created_at', startOfMonth.toISOString());
+
+      if (!errMonth) document.getElementById('statMonth').textContent = countMonth;
+
+      // 3. 待同步数据 (目前实时入库，故为0)
+      document.getElementById('statPending').textContent = 0;
+
+    } catch (e) {
+      console.warn('统计数据加载失败:', e);
+    }
+  }
 
 
   // --- Database Renders ---
