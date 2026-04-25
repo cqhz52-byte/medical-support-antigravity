@@ -1,4 +1,4 @@
-const CACHE_NAME = 'clinical-support-v3.0';
+const CACHE_NAME = 'clinical-support-v4.0';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -15,7 +15,9 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS_TO_CACHE);
-    }).then(() => self.skipWaiting())
+    })
+    // 注意：这里不再调用 self.skipWaiting()
+    // 等待用户点击"立即更新"按钮后，通过 message 事件手动触发 skipWaiting
   );
 });
 
