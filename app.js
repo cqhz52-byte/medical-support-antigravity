@@ -12,6 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const SUPABASE_ANON_KEY = 'sb_publishable_PqGg_I2ElFiWkU1BHAY72w_0HlZQRcZ';
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+  // Web Push VAPID Public Key
+  const VAPID_PUBLIC_KEY = 'BGdMnU3sHJwo5OTJ_sSVwRsTrJlbACvcRiURp0Tx4Z9oAdVAX4HG5qgIMbwyGxDOfRNDLuI4fMHZL8SIgMOMhl8';
+
   // === Layout Elements ===
   const viewLogin = document.getElementById('loginView');
   const viewDashboard = document.getElementById('dashboardView');
@@ -234,6 +237,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   logoutBtn.addEventListener('click', async () => {
+    // 退出前清除推送订阅
+    await unsubscribeFromPush();
     await supabase.auth.signOut();
     currentUser = null;
     localStorage.removeItem('cachedName');
@@ -261,9 +266,13 @@ document.addEventListener('DOMContentLoaded', () => {
         showView('dashboardView');
         renderPendingTasks(name);
         
-        // V1.9: 请求桌面级通知权限
+        // V4.0: Web Push 后台真推送订阅
         if ('Notification' in window && Notification.permission === 'default') {
-          Notification.requestPermission();
+          Notification.requestPermission().then(perm => {
+            if (perm === 'granted') subscribeToWebPush(name);
+          });
+        } else if ('Notification' in window && Notification.permission === 'granted') {
+          subscribeToWebPush(name);
         }
         
         // 🚀 实时订阅后台调度指派 (Supabase Realtime)
@@ -274,6 +283,74 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   
+  // ====== Web Push 后台真推送订阅管理 ======
+  function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  }
+
+  async function subscribeToWebPush(userName) {
+    try {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        console.log('Web Push 不支持');
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.ready;
+      
+      // 检查是否已经订阅
+      let subscription = await registration.pushManager.getSubscription();
+
+      if (!subscription) {
+        // 创建新订阅
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+        console.log('Web Push 订阅成功:', subscription.endpoint);
+      }
+
+      // 提取订阅信息存入 Supabase
+      const subJson = subscription.toJSON();
+      const { error } = await supabase.from('push_subscriptions').upsert({
+        user_id: currentUser.id,
+        user_name: userName,
+        endpoint: subJson.endpoint,
+        p256dh: subJson.keys.p256dh,
+        auth: subJson.keys.auth
+      }, { onConflict: 'user_id,endpoint' });
+
+      if (error) console.warn('推送订阅存储失败:', error);
+      else console.log('推送订阅已同步到云端');
+    } catch (e) {
+      console.warn('Web Push 订阅失败:', e);
+    }
+  }
+
+  async function unsubscribeFromPush() {
+    try {
+      if (!('serviceWorker' in navigator)) return;
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+      if (subscription) {
+        await subscription.unsubscribe();
+        // 同时从数据库清除
+        if (currentUser) {
+          await supabase.from('push_subscriptions').delete().eq('user_id', currentUser.id);
+        }
+        console.log('推送订阅已清除');
+      }
+    } catch (e) {
+      console.warn('取消推送订阅失败:', e);
+    }
+  }
+
   let realtimeChannel = null;
   function subscribeToRealtimePush(engineerName) {
     if (realtimeChannel) {

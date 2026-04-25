@@ -79,3 +79,20 @@ ON CONFLICT DO NOTHING;
 -- 5. 开启 dispatch_tasks 表的 Realtime 实时推送广播
 -- ⚠️ 必须执行此条命令，前端才能通过 WebSocket 收到新派单的推送！
 ALTER PUBLICATION supabase_realtime ADD TABLE dispatch_tasks;
+
+
+-- 6. Web Push 推送订阅存储表 (iOS 16.4+ 后台真推送)
+DROP TABLE IF EXISTS push_subscriptions CASCADE;
+CREATE TABLE push_subscriptions (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_name VARCHAR(100),
+  endpoint TEXT NOT NULL,
+  p256dh TEXT NOT NULL,
+  auth TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, endpoint)
+);
+ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "用户可管理自己的推送订阅" ON push_subscriptions FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Edge Function可读取所有订阅" ON push_subscriptions FOR SELECT USING (true);
