@@ -1173,9 +1173,10 @@ document.addEventListener('DOMContentLoaded', () => {
       e.target.reset(); mediaPreview.textContent = '暂无文件'; paperParamPreview.textContent = '相机高压录原纸存档';
       dynamicParameters.innerHTML = ''; consumableList.innerHTML = ''; capturedPaperImages=[]; capturedMediaImages=[];
       showView('dashboardView');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '归卷终态全量落库';
     }
-    btn.disabled = false;
-    btn.textContent = '归卷终态全量落库';
   });
 
   // V4.8: 显式触发通知权限 (iOS 必须由点击触发)
