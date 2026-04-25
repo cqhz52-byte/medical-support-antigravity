@@ -187,11 +187,12 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('userRole', currentRole);
         localStorage.setItem('cachedName', data.full_name);
       } else {
-        currentRole = document.querySelector('input[name="authRole"]:checked').value;
+        // 数据库没有 profile，优先用 localStorage 缓存的角色，其次用当前选中的单选按钮
+        currentRole = localStorage.getItem('userRole') || document.querySelector('input[name="authRole"]:checked').value;
       }
     } catch(e) { 
       console.warn('Profile fetch fail', e); 
-      currentRole = document.querySelector('input[name="authRole"]:checked').value;
+      currentRole = localStorage.getItem('userRole') || document.querySelector('input[name="authRole"]:checked').value;
     }
   }
 
