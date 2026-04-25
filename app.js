@@ -180,19 +180,15 @@ document.addEventListener('DOMContentLoaded', () => {
   function getEmailFromPhone(phone) { return `${phone}@antigravity.clinic`; } // Supabase Auth Mock Wrapper
 
   async function syncProfileRole() {
+    // 角色由登录页面选择决定（已存入 localStorage），数据库只用来获取姓名
+    currentRole = localStorage.getItem('userRole') || document.querySelector('input[name="authRole"]:checked').value;
     try {
-      const { data } = await supabase.from('user_profiles').select('role, full_name').eq('id', currentUser.id).single();
-      if(data) {
-        currentRole = data.role;
-        localStorage.setItem('userRole', currentRole);
+      const { data } = await supabase.from('user_profiles').select('full_name').eq('id', currentUser.id).single();
+      if(data && data.full_name) {
         localStorage.setItem('cachedName', data.full_name);
-      } else {
-        // 数据库没有 profile，优先用 localStorage 缓存的角色，其次用当前选中的单选按钮
-        currentRole = localStorage.getItem('userRole') || document.querySelector('input[name="authRole"]:checked').value;
       }
     } catch(e) { 
       console.warn('Profile fetch fail', e); 
-      currentRole = localStorage.getItem('userRole') || document.querySelector('input[name="authRole"]:checked').value;
     }
   }
 
