@@ -323,13 +323,17 @@ document.addEventListener('DOMContentLoaded', () => {
         showView('dashboardView');
         renderPendingTasks(name);
         
-        // V4.0: Web Push 后台真推送订阅
-        if ('Notification' in window && Notification.permission === 'default') {
-          Notification.requestPermission().then(perm => {
-            if (perm === 'granted') subscribeToWebPush(name);
-          });
-        } else if ('Notification' in window && Notification.permission === 'granted') {
-          subscribeToWebPush(name);
+        // V4.8: 智能通知状态检测与引导 (解决 iOS 不弹窗问题)
+        const banner = document.getElementById('notificationBanner');
+        if ('Notification' in window) {
+          if (Notification.permission === 'default') {
+            banner.classList.remove('is-hidden');
+          } else if (Notification.permission === 'granted') {
+            banner.classList.add('is-hidden');
+            subscribeToWebPush(name);
+          } else {
+            banner.classList.add('is-hidden'); 
+          }
         }
         
         // 🚀 实时订阅后台调度指派 (Supabase Realtime)
@@ -937,5 +941,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     btn.disabled = false;
     btn.textContent = '归卷终态全量落库';
+  });
+
+  // V4.8: 显式触发通知权限 (iOS 必须由点击触发)
+  document.getElementById('enableNotificationsBtn').addEventListener('click', async () => {
+    try {
+      const perm = await Notification.requestPermission();
+      if (perm === 'granted') {
+        const name = localStorage.getItem('cachedName') || (currentUser ? currentUser.email.split('@')[0] : '工程师');
+        await subscribeToWebPush(name);
+        document.getElementById('notificationBanner').classList.add('is-hidden');
+        alert('✅ 实时提醒已开启，请保持 App 在后台运行。');
+      } else {
+        alert('❌ 权限未授予，您将无法收到离线推送。请在系统设置中允许本 App 的通知。');
+      }
+    } catch (e) {
+      alert('无法请求通知权限：' + e.message);
+    }
   });
 });
