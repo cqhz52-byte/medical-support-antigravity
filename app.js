@@ -192,13 +192,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // 手机号校验
+  function validatePhone(phone) {
+    if (!phone || phone.trim() === '') { alert('⚠️ 请输入手机号码'); return false; }
+    if (!/^\d+$/.test(phone)) { alert('⚠️ 手机号只能包含数字，请勿输入字母或特殊字符'); return false; }
+    if (phone.length !== 11) { alert(`⚠️ 手机号必须为 11 位，当前输入了 ${phone.length} 位`); return false; }
+    if (!/^1[3-9]\d{9}$/.test(phone)) { alert('⚠️ 手机号格式不正确，请输入有效的大陆手机号'); return false; }
+    return true;
+  }
+
   registerForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const phone = document.getElementById('regPhone').value;
-    const name = document.getElementById('regUsername').value;
+    const phone = document.getElementById('regPhone').value.trim();
+    const name = document.getElementById('regUsername').value.trim();
     const pwd = document.getElementById('regPassword').value;
     const role = document.querySelector('input[name="authRole"]:checked').value;
-    if(!phone || !name || !pwd) return;
+    if (!validatePhone(phone)) return;
+    if (!name) { alert('⚠️ 请输入您的姓名'); return; }
+    if (!pwd || pwd.length < 6) { alert('⚠️ 密码至少需要 6 位'); return; }
 
     const btn = registerForm.querySelector('button'); btn.textContent = '注册中...';
     try {
@@ -218,9 +229,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const phone = document.getElementById('loginPhone').value;
+    const phone = document.getElementById('loginPhone').value.trim();
     const pwd = document.getElementById('loginPassword').value;
-    if(!phone || !pwd) return;
+    if (!validatePhone(phone)) return;
+    if (!pwd) { alert('⚠️ 请输入密码'); return; }
 
     // 登录前先保存用户选择的角色，确保 checkAuthSession 能区分权限
     const selectedRole = document.querySelector('input[name="authRole"]:checked').value;
