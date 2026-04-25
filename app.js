@@ -180,15 +180,27 @@ document.addEventListener('DOMContentLoaded', () => {
   function getEmailFromPhone(phone) { return `${phone}@antigravity.clinic`; } // Supabase Auth Mock Wrapper
 
   async function syncProfileRole() {
-    // 角色由登录页面选择决定（已存入 localStorage），数据库只用来获取姓名
-    currentRole = localStorage.getItem('userRole') || document.querySelector('input[name="authRole"]:checked').value;
     try {
-      const { data } = await supabase.from('user_profiles').select('full_name').eq('id', currentUser.id).single();
-      if(data && data.full_name) {
-        localStorage.setItem('cachedName', data.full_name);
+      const { data } = await supabase.from('user_profiles').select('role, full_name').eq('id', currentUser.id).single();
+      if (data) {
+        // 数据库角色为权威来源
+        currentRole = data.role;
+        localStorage.setItem('userRole', currentRole);
+        if (data.full_name) localStorage.setItem('cachedName', data.full_name);
+
+        // 检查登录页选择是否与注册角色一致
+        const selectedTab = document.querySelector('input[name="authRole"]:checked').value;
+        if (selectedTab !== currentRole) {
+          const roleName = currentRole === 'admin' ? '派单调度' : '跟台人员';
+          alert(`⚠️ 此账号注册身份为【${roleName}】，已自动切换到对应系统。`);
+        }
+      } else {
+        // 新用户，无 profile，用登录页面选择
+        currentRole = localStorage.getItem('userRole') || 'engineer';
       }
-    } catch(e) { 
-      console.warn('Profile fetch fail', e); 
+    } catch(e) {
+      console.warn('Profile fetch fail', e);
+      currentRole = localStorage.getItem('userRole') || 'engineer';
     }
   }
 
@@ -573,14 +585,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadEngineers() {
     try {
-      const { data, error } = await supabase.from('user_profiles').select('full_name').eq('role', 'engineer');
-      if (!error && data) {
-        dpEngineer.innerHTML = '<option value="" disabled selected>下拉选择真实工程师...</option>';
-        data.forEach(user => {
-          const opt = document.createElement('option'); opt.value = user.full_name; opt.textContent = user.full_name; dpEngineer.appendChild(opt);
-        });
+      const { data, error } = await supabase.from('user_profiles').select('full_name, role').eq('role', 'engineer');
+      if (error) {
+        console.error('加载工程师列表失败:', error);
+        dpEngineer.innerHTML = '<option value="" disabled selected>⚠️ 加载失败，请刷新</option>';
+        return;
       }
-    } catch(e) {}
+      if (!data || data.length === 0) {
+        dpEngineer.innerHTML = '<option value="" disabled selected>暂无注册工程师（请先用跟台人员身份注册账号）</option>';
+        return;
+      }
+      dpEngineer.innerHTML = `<option value="" disabled selected>选择工程师（共 ${data.length} 人）</option>`;
+      data.forEach(user => {
+        const opt = document.createElement('option');
+        opt.value = user.full_name;
+        opt.textContent = user.full_name;
+        dpEngineer.appendChild(opt);
+      });
+      console.log(`已加载 ${data.length} 名工程师`);
+    } catch(e) {
+      console.error('loadEngineers 异常:', e);
+      dpEngineer.innerHTML = '<option value="" disabled selected>⚠️ 网络异常</option>';
+    }
   }
 
   function initData() {
