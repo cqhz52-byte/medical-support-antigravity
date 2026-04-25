@@ -325,15 +325,22 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // V4.8: 智能通知状态检测与引导 (解决 iOS 不弹窗问题)
         const banner = document.getElementById('notificationBanner');
+        console.log('检查通知状态:', {
+          hasNotification: ('Notification' in window),
+          permission: ('Notification' in window ? Notification.permission : 'N/A'),
+          role: currentRole
+        });
+
         if ('Notification' in window) {
-          if (Notification.permission === 'default') {
+          if (Notification.permission !== 'granted') {
             banner.classList.remove('is-hidden');
-          } else if (Notification.permission === 'granted') {
+            console.log('显示通知引导条');
+          } else {
             banner.classList.add('is-hidden');
             subscribeToWebPush(name);
-          } else {
-            banner.classList.add('is-hidden'); 
           }
+        } else {
+          console.warn('本浏览器不支持 Notification API');
         }
         
         // 🚀 实时订阅后台调度指派 (Supabase Realtime)
