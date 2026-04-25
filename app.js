@@ -195,8 +195,29 @@ document.addEventListener('DOMContentLoaded', () => {
           alert(`⚠️ 此账号注册身份为【${roleName}】，已自动切换到对应系统。`);
         }
       } else {
-        // 新用户，无 profile，用登录页面选择
-        currentRole = localStorage.getItem('userRole') || 'engineer';
+        // 数据库没有 profile，尝试从缓存补写（注册时 RLS 可能阻止了写入）
+        const pending = localStorage.getItem('pendingProfile');
+        if (pending) {
+          try {
+            const profile = JSON.parse(pending);
+            profile.id = currentUser.id; // 确保用当前登录用户的 ID
+            const { error: insertErr } = await supabase.from('user_profiles').upsert(profile);
+            if (!insertErr) {
+              currentRole = profile.role;
+              localStorage.setItem('userRole', currentRole);
+              localStorage.setItem('cachedName', profile.full_name);
+              localStorage.removeItem('pendingProfile');
+              console.log('首次登录补写 profile 成功:', profile);
+            } else {
+              console.warn('补写 profile 失败:', insertErr);
+              currentRole = localStorage.getItem('userRole') || 'engineer';
+            }
+          } catch(pe) {
+            currentRole = localStorage.getItem('userRole') || 'engineer';
+          }
+        } else {
+          currentRole = localStorage.getItem('userRole') || 'engineer';
+        }
       }
     } catch(e) {
       console.warn('Profile fetch fail', e);
@@ -227,9 +248,19 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const { data, error } = await supabase.auth.signUp({ email: getEmailFromPhone(phone), password: pwd });
       if(error) throw error;
-      // Also init profile
+
+      // 写入 user_profiles（注册后可能 auth session 未就绪，需要处理失败情况）
       if(data.user) {
-         await supabase.from('user_profiles').insert({ id: data.user.id, full_name: name, role: role });
+        const { error: profileError } = await supabase.from('user_profiles').insert({
+          id: data.user.id, full_name: name, role: role
+        });
+        if (profileError) {
+          console.warn('注册时 profile 写入失败（将在首次登录时补写）:', profileError);
+          // 缓存到 localStorage，首次登录时补写
+          localStorage.setItem('pendingProfile', JSON.stringify({
+            id: data.user.id, full_name: name, role: role
+          }));
+        }
       }
       alert('注册成功，请使用新身份登录！');
       registerForm.classList.add('is-hidden'); loginForm.classList.remove('is-hidden');
