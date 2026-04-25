@@ -240,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('toRegister').addEventListener('click', () => { loginForm.classList.add('is-hidden'); registerForm.classList.remove('is-hidden'); });
         document.getElementById('toLogin').addEventListener('click', () => { registerForm.classList.add('is-hidden'); loginForm.classList.remove('is-hidden'); });
         logoutBtn.addEventListener('click', async () => { await supabase.auth.signOut(); currentUser = null; showView('loginView'); });
-        syncBtn.addEventListener('click', () => showToast('离线存挡通道：检测到网络完好，数据已实时投递！', 'success'));
+        syncBtn.addEventListener('click', () => syncOfflineData());
         surgeryOptions.addEventListener('change', (e) => {
           if(e.target.value) { surgeryType.value = e.target.value; generateDynamicForm(e.target.value); }
         });
@@ -664,12 +664,72 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (!errMonth) document.getElementById('statMonth').textContent = countMonth;
 
-      // 3. 待同步数据 (目前实时入库，故为0)
-      document.getElementById('statPending').textContent = 0;
+      // 3. 待同步数据
+      const offlineData = JSON.parse(localStorage.getItem('pending_cases') || '[]');
+      document.getElementById('statPending').textContent = offlineData.length;
 
     } catch (e) {
       console.warn('统计数据加载失败:', e);
     }
+  }
+
+  // --- Offline Storage Logic ---
+  function saveOfflineCase(payload) {
+    const pending = JSON.parse(localStorage.getItem('pending_cases') || '[]');
+    pending.push({ ...payload, offline_id: Date.now() });
+    localStorage.setItem('pending_cases', JSON.stringify(pending));
+    
+    // 更新 UI 计数
+    document.getElementById('statPending').textContent = pending.length;
+    showToast('⚠️ 当前网络不稳，数据已安全暂存至本地（离线模式），待联网后请点击同步。', 'warning');
+  }
+
+  async function syncOfflineData() {
+    const pending = JSON.parse(localStorage.getItem('pending_cases') || '[]');
+    if (pending.length === 0) {
+      showToast('目前没有需要同步的离线数据。', 'info');
+      return;
+    }
+
+    const btn = document.getElementById('syncBtn');
+    const originalText = btn.textContent;
+    btn.textContent = `同步中(${pending.length})...`;
+    btn.disabled = true;
+
+    let successCount = 0;
+    let failedCases = [];
+
+    for (const item of pending) {
+      try {
+        const { offline_id, ...payload } = item;
+        const { error } = await supabase.from('clinical_cases').insert(payload);
+        if (error) throw error;
+        
+        // 如果是关联任务，标记任务完成
+        if (payload.task_id) {
+          await supabase.from('dispatch_tasks').update({ status: 'completed' }).eq('id', payload.task_id);
+        }
+        successCount++;
+      } catch (e) {
+        failedCases.push(item);
+      }
+    }
+
+    localStorage.setItem('pending_cases', JSON.stringify(failedCases));
+    document.getElementById('statPending').textContent = failedCases.length;
+    
+    if (successCount > 0) {
+      showToast(`✅ 成功同步 ${successCount} 条数据至云端！`, 'success');
+      const name = localStorage.getItem('cachedName');
+      if (name) updateUserStats(name); // 刷新统计
+    }
+    
+    if (failedCases.length > 0) {
+      showToast(`❌ 仍有 ${failedCases.length} 条数据同步失败，请检查网络。`, 'error');
+    }
+
+    btn.textContent = originalText;
+    btn.disabled = false;
   }
 
 
@@ -1091,7 +1151,13 @@ document.addEventListener('DOMContentLoaded', () => {
       let td = parseInt(document.getElementById('statToday').textContent, 10) || 0;
       document.getElementById('statToday').textContent = td + 1;
     } catch(err) {
-      showToast('落库受阻，原因:' + err.message, 'error');
+      console.warn('Direct upload failed, switching to offline mode:', err);
+      saveOfflineCase(payload);
+      
+      // Cleanup UI anyway
+      e.target.reset(); mediaPreview.textContent = '暂无文件'; paperParamPreview.textContent = '相机高压录原纸存档';
+      dynamicParameters.innerHTML = ''; consumableList.innerHTML = ''; capturedPaperImages=[]; capturedMediaImages=[];
+      showView('dashboardView');
     }
     btn.disabled = false;
     btn.textContent = '归卷终态全量落库';
