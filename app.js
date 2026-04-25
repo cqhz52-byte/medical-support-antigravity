@@ -142,8 +142,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnSubmit = document.getElementById('submitBtn');
   const stepIndicators = document.querySelectorAll('.stepper .step');
   const formSteps = document.querySelectorAll('.form-step');
-  
+  const syncBtn = document.getElementById('syncBtn');
   const hospitalSearch = document.getElementById('hospitalSearch');
+  
+  // 安全绑定辅助函数
+  function safeBind(el, event, handler) {
+    if (el) el.addEventListener(event, handler);
+  }
+  
   const doctorName = document.getElementById('doctorName');
   const hospitalOptions = document.getElementById('hospitalOptions');
   const surgeryType = document.getElementById('surgeryType');
@@ -237,18 +243,18 @@ document.addEventListener('DOMContentLoaded', () => {
         fabNewCase.classList.add('is-hidden');
       } else {
         // === UI Event Listeners ===
-        document.getElementById('toRegister').addEventListener('click', () => { loginForm.classList.add('is-hidden'); registerForm.classList.remove('is-hidden'); });
-        document.getElementById('toLogin').addEventListener('click', () => { registerForm.classList.add('is-hidden'); loginForm.classList.remove('is-hidden'); });
-        logoutBtn.addEventListener('click', async () => { await supabase.auth.signOut(); currentUser = null; showView('loginView'); });
-        syncBtn.addEventListener('click', () => syncOfflineData());
-        surgeryOptions.addEventListener('change', (e) => {
+        safeBind(document.getElementById('toRegister'), 'click', () => { loginForm.classList.add('is-hidden'); registerForm.classList.remove('is-hidden'); });
+        safeBind(document.getElementById('toLogin'), 'click', () => { registerForm.classList.add('is-hidden'); loginForm.classList.remove('is-hidden'); });
+        safeBind(logoutBtn, 'click', async () => { await supabase.auth.signOut(); currentUser = null; showView('loginView'); });
+        safeBind(syncBtn, 'click', () => syncOfflineData());
+        safeBind(surgeryOptions, 'change', (e) => {
           if(e.target.value) { surgeryType.value = e.target.value; generateDynamicForm(e.target.value); }
         });
         
         // V3.0: 角色高颜切换交互逻辑
         const roleTabs = document.querySelectorAll('.role-tab');
         roleTabs.forEach(tab => {
-          tab.querySelector('input').addEventListener('change', (e) => {
+          safeBind(tab.querySelector('input'), 'change', (e) => {
             roleTabs.forEach(t => t.classList.remove('is-active'));
             tab.classList.add('is-active');
           });
@@ -276,10 +282,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   
-  tabEngineer.addEventListener('click', () => setRoleTab('engineer'));
-  tabAdmin.addEventListener('click', () => setRoleTab('admin'));
-  toRegisterBtn.addEventListener('click', () => { loginForm.classList.add('is-hidden'); registerForm.classList.remove('is-hidden'); });
-  toLoginBtn.addEventListener('click', () => { registerForm.classList.add('is-hidden'); loginForm.classList.remove('is-hidden'); });
+  safeBind(tabEngineer, 'click', () => setRoleTab('engineer'));
+  safeBind(tabAdmin, 'click', () => setRoleTab('admin'));
+  safeBind(toRegisterBtn, 'click', () => { loginForm.classList.add('is-hidden'); registerForm.classList.remove('is-hidden'); });
+  safeBind(toLoginBtn, 'click', () => { registerForm.classList.remove('is-hidden'); loginForm.classList.add('is-hidden'); });
 
   function getEmailFromPhone(phone) { return `${phone}@antigravity.clinic`; } // Supabase Auth Mock Wrapper
 
@@ -338,7 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return true;
   }
 
-  registerForm.addEventListener('submit', async (e) => {
+  safeBind(registerForm, 'submit', async (e) => {
     e.preventDefault();
     const phone = document.getElementById('regPhone').value.trim();
     const name = document.getElementById('regUsername').value.trim();
@@ -372,7 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setLoading('regSubmitBtn', false, '立即进站');
   });
 
-  loginForm.addEventListener('submit', async (e) => {
+  safeBind(loginForm, 'submit', async (e) => {
     e.preventDefault();
     const phone = document.getElementById('loginPhone').value.trim();
     const pwd = document.getElementById('loginPassword').value;
@@ -394,7 +400,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setLoading('loginSubmitBtn', false, '确 认 登 录');
   });
 
-  logoutBtn.addEventListener('click', async () => {
+  safeBind(logoutBtn, 'click', async () => {
     // 退出前清除推送订阅
     await unsubscribeFromPush();
     await supabase.auth.signOut();
@@ -797,35 +803,37 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch(e) { console.warn(e); }
   }
 
-  refreshAdminTasksBtn.addEventListener('click', () => {
+  safeBind(refreshAdminTasksBtn, 'click', () => {
     renderAdminTasks();
     loadEngineers();
   });
 
   // === Dispatching Form (Admin Create) ===
-  dispatchForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (!dpEngineer.value || !dpHospital.value) { showToast("核心指令不完整！", "warning"); return; }
-    const btn = dispatchForm.querySelector('button'); btn.textContent = '云穿透中...';
-    try {
-      const { error } = await supabase.from('dispatch_tasks').insert({
-        admin_id: currentUser.id,
-        engineer_name: dpEngineer.value.trim(),
-        target_hospital: dpHospital.value.trim(),
-        target_doctor: dpDoctor.value.trim() || '未定医生',
-        contact_info: dpContact.value.trim(),
-        procedure_type: dpSurgery.value,
-        scheduled_time: dpTime.value,
-        equipment_requirements: dpEquipment.value.trim(),
-        remarks: dpRemarks.value.trim()
-      });
-      if(error) throw error;
-      showToast(`🚀 单据已下发并推送到 ${dpEngineer.value} 手机端！`, 'success');
-      dispatchForm.reset();
-      renderAdminTasks();
-    } catch(err){ showToast('派发异常:' + err.message, 'error'); }
-    btn.textContent = '🚀 确认下达指令云穿透';
-  });
+  if (dispatchForm) {
+    dispatchForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!dpEngineer.value || !dpHospital.value) { showToast("核心指令不完整！", "warning"); return; }
+      const btn = dispatchForm.querySelector('button'); btn.textContent = '云穿透中...';
+      try {
+        const { error } = await supabase.from('dispatch_tasks').insert({
+          admin_id: currentUser.id,
+          engineer_name: dpEngineer.value.trim(),
+          target_hospital: dpHospital.value.trim(),
+          target_doctor: dpDoctor.value.trim() || '未定医生',
+          contact_info: dpContact.value.trim(),
+          procedure_type: dpSurgery.value,
+          scheduled_time: dpTime.value,
+          equipment_requirements: dpEquipment.value.trim(),
+          remarks: dpRemarks.value.trim()
+        });
+        if(error) throw error;
+        showToast(`🚀 单据已下发并推送到 ${dpEngineer.value} 手机端！`, 'success');
+        dispatchForm.reset();
+        renderAdminTasks();
+      } catch(err){ showToast('派发异常:' + err.message, 'error'); }
+      btn.textContent = '🚀 确认下达指令云穿透';
+    });
+  }
 
 
   // === Init App ===
