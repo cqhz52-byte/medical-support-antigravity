@@ -15,25 +15,31 @@ document.addEventListener('DOMContentLoaded', () => {
   // Web Push VAPID Public Key
   const VAPID_PUBLIC_KEY = 'BGdMnU3sHJwo5OTJ_sSVwRsTrJlbACvcRiURp0Tx4Z9oAdVAX4HG5qgIMbwyGxDOfRNDLuI4fMHZL8SIgMOMhl8';
 
-  // === V5.5: PWA 引导分发系统 ===
-  const isWeChat = /MicroMessenger/i.test(navigator.userAgent);
+  // === V5.6: PWA 引导分发系统 (增强 Android 兼容性) ===
+  const ua = navigator.userAgent.toLowerCase();
+  const isWeChat = /micromessenger|wechat/i.test(ua);
   const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
-  const isiOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isiOS = /iphone|ipad|ipod/i.test(ua);
 
   const wechatOverlay = document.getElementById('wechatGuideOverlay');
   const pwaOverlay = document.getElementById('pwaGlassOverlay');
   const iosHint = document.getElementById('iosInstallHint');
+  const pwaActionBtn = document.getElementById('pwaActionBtn');
 
-  // 1. 微信环境拦截
+  // 1. 微信环境拦截 (无论 iOS 还是 Android)
   if (isWeChat && !isStandalone) {
     wechatOverlay.classList.remove('is-hidden');
+    console.log('检测到微信环境，显示引导层');
   } 
   // 2. 浏览器环境安装引导 (非 PWA 模式打开时显示)
   else if (!isStandalone) {
     pwaOverlay.classList.remove('is-hidden');
     if (isiOS) {
       iosHint.classList.remove('is-hidden');
-      document.getElementById('pwaActionBtn').classList.add('is-hidden'); // iOS 只能手动点分享
+      pwaActionBtn.classList.add('is-hidden'); // iOS 只能手动点分享
+    } else {
+      // Android 默认显示按钮，如果不触发 beforeinstallprompt 则作为普通提示
+      pwaActionBtn.classList.remove('is-hidden');
     }
   }
 
@@ -42,18 +48,15 @@ document.addEventListener('DOMContentLoaded', () => {
     pwaOverlay.classList.add('is-hidden');
   });
 
-  // Android 安装触发 (由 PWA 提供原生事件)
+  // Android 原生安装触发
   let deferredPrompt;
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    // 只有在安卓且非 PWA 模式下显示安装按钮
-    if (!isiOS && !isStandalone) {
-      document.getElementById('pwaActionBtn').classList.remove('is-hidden');
-    }
+    console.log('捕获到 Android 原生安装事件');
   });
 
-  document.getElementById('pwaActionBtn').addEventListener('click', async () => {
+  pwaActionBtn.addEventListener('click', async () => {
     if (deferredPrompt) {
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
@@ -61,8 +64,8 @@ document.addEventListener('DOMContentLoaded', () => {
         pwaOverlay.classList.add('is-hidden');
       }
       deferredPrompt = null;
-    } else {
-      alert('⚠️ 请点击浏览器菜单中的“安装”或“添加到主屏幕”。');
+    } else if (!isiOS) {
+      alert('📥 请点击浏览器右上角 [┇] 或底部菜单，选择“安装应用”或“添加到主屏幕”以完成。');
     }
   });
 
